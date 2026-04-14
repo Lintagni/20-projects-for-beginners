@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>20 Projects — Portfolio</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface-hover: #22263a;
+      --border: #2a2d3e;
+      --accent: #6c63ff;
+      --accent-light: #8b85ff;
+      --text: #e8e8f0;
+      --text-muted: #8888aa;
+      --green: #4ade80;
+      --radius: 14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 0 1.5rem 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3.5rem 0 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.35);
+      color: var(--accent-light);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      margin-bottom: 1.2rem;
+    }
+
+    header h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      margin-top: 0.9rem;
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 500px;
+      line-height: 1.6;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      max-width: 1100px;
+      margin: 3rem auto 0;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(108,99,255,0.07) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(108, 99, 255, 0.45);
+      background: var(--surface-hover);
+      box-shadow: 0 8px 32px rgba(108, 99, 255, 0.12);
+    }
+
+    .card:hover::before { opacity: 1; }
+
+    .card.coming-soon {
+      opacity: 0.45;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .number {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+      flex: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.25rem;
+    }
+
+    .tag {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+    }
+
+    .tag-live {
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+    }
+
+    .tag-soon {
+      background: rgba(136,136,170,0.1);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .arrow {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(108, 99, 255, 0.12);
+      border: 1px solid rgba(108, 99, 255, 0.2);
+      display: grid;
+      place-items: center;
+      color: var(--accent-light);
+      font-size: 0.85rem;
+      transition: background 0.18s, transform 0.18s;
+    }
+
+    .card:hover .arrow {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      transform: translateX(2px);
+    }
+
+    /* color themes for icons */
+    .c1 { background: rgba(99,179,237,0.12); }
+    .c2 { background: rgba(154,230,180,0.12); }
+    .c3 { background: rgba(252,176,69,0.12); }
+    .c4 { background: rgba(246,173,85,0.12); }
+    .c5 { background: rgba(108,99,255,0.12); }
+    .c6 { background: rgba(252,129,129,0.12); }
+    .c7 { background: rgba(129,230,217,0.12); }
+    .c8 { background: rgba(183,148,244,0.12); }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 4rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    footer span { color: var(--accent-light); }
+
+    @media (max-width: 480px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>20 Projects for Beginners</h1>
+    <p>A collection of 20 web applications — from productivity tools to finance apps using claude code + vscode</p>
+  </header>
+
+  <main class="grid" id="grid"></main>
+
+  <footer>
+    Built with <span>♥</span> — 20 Projects using claude code + vscode
+  </footer>
+
+  <script>
+    const projects = [
+      {
+        number: "01",
+        title: "Todo Tracker",
+        desc: "A clean task management app to organize your daily to-dos with priorities and completion tracking.",
+        icon: "✅",
+        iconClass: "c1",
+        link: "1.Todo tracker/dist/index.html",
+        live: true,
+        tech: "React · Vite"
+      },
+      {
+        number: "02",
+        title: "Habit Tracker",
+        desc: "Build and maintain habits with streaks, progress visualization, and daily check-ins.",
+        icon: "🔥",
+        iconClass: "c2",
+        link: "2. Habit Tracker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "03",
+        title: "Pomodoro Timer",
+        desc: "Boost focus with the Pomodoro technique — work intervals, short breaks, and long breaks.",
+        icon: "⏱️",
+        iconClass: "c3",
+        link: "3.Promodo Timer/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "04",
+        title: "Note Taking App",
+        desc: "Capture ideas and notes quickly with a minimal, distraction-free writing interface.",
+        icon: "📝",
+        iconClass: "c4",
+        link: "4.Note Taking App/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "05",
+        title: "Project Planner",
+        desc: "Plan and track projects with tasks, milestones, and progress boards to stay on schedule.",
+        icon: "📋",
+        iconClass: "c5",
+        link: "5. Project Planner/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "06",
+        title: "Expense Tracker",
+        desc: "Monitor your spending, categorize expenses, and visualize where your money goes.",
+        icon: "💸",
+        iconClass: "c6",
+        link: "6.Expense Tracker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "07",
+        title: "Invoice Generator",
+        desc: "Create professional invoices quickly — add line items, client details, and export to PDF.",
+        icon: "🧾",
+        iconClass: "c7",
+        link: "7.Invoice Generator/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      {
+        number: "08",
+        title: "Budget Calculator",
+        desc: "Plan your monthly budget, set spending limits, and track income vs. expenses at a glance.",
+        icon: "🏦",
+        iconClass: "c8",
+        link: "8. Budget Calculator/index.html",
+        live: true,
+        tech: "HTML · CSS · JS"
+      },
+      // Project 9 — live
+      {
+        number: "09",
+        title: "Crypto Price Tracker",
+        desc: "Live cryptocurrency prices for Bitcoin, Ethereum, Cardano & Ripple — with watchlist, 24h changes, market cap, and auto-refresh.",
+        icon: "₿",
+        iconClass: "c2",
+        link: "9. Crypto Price Tracker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · CoinGecko API"
+      },
+      // Project 10 — live
+      {
+        number: "10",
+        title: "Affiliate Link Tracker",
+        desc: "Generate short codes for affiliate URLs, track clicks over time, view analytics, manage a watchlist, and copy links instantly.",
+        icon: "🔗",
+        iconClass: "c3",
+        link: "10.Affiliate Link Tracker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      },
+      // Project 11 — live
+      {
+        number: "11",
+        title: "Water Intake Tracker",
+        desc: "Track daily hydration with a visual glass, progress bar, smart reminders, streak counter, weekly chart, and full history log.",
+        icon: "💧",
+        iconClass: "c1",
+        link: "11.water intake traker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      },
+      // Project 12 — live
+      {
+        number: "12",
+        title: "Workout Tracker",
+        desc: "Log workouts by type, track calories & duration, monitor streaks, view a 14-day chart, set weekly goals, and unlock achievements.",
+        icon: "🏋️",
+        iconClass: "c6",
+        link: "12.Workout Tracker/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      },
+      // Project 13 — live
+      {
+        number: "13",
+        title: "Reading List Manager",
+        desc: "Track your books with status, star ratings, reviews, page progress, genre breakdown, reading goals, and CSV export.",
+        icon: "📚",
+        iconClass: "c5",
+        link: "13.Reading List/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      },
+      // Project 14 — live
+      {
+        number: "14",
+        title: "Meditation Timer",
+        desc: "Guided meditation with breathing animation, ambient sounds (rain, ocean, birds), streak counter, mood reflection, and a calming dark UI.",
+        icon: "🧘",
+        iconClass: "c1",
+        link: "14.Meditation Timer/index.html",
+        live: true,
+        tech: "HTML · CSS · Web Audio API"
+      },
+      // Project 15 — live
+      {
+        number: "15",
+        title: "Recipe Search & Save",
+        desc: "Search 300K+ recipes by dish or ingredient, filter by cuisine, scale servings, view nutrition estimates, save favorites, and print recipes.",
+        icon: "🍳",
+        iconClass: "c3",
+        link: "15.Recipe Timer/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · MealDB API"
+      },
+      // Project 16 — live
+      {
+        number: "16",
+        title: "Password Generator",
+        desc: "Generate secure passwords with custom length, character sets, strength meter, entropy score, save favorites with labels, and full history.",
+        icon: "🔐",
+        iconClass: "c5",
+        link: "16.Password Generator/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · Web Crypto API"
+      },
+      // Project 17 — live
+      {
+        number: "17",
+        title: "Unit Converter",
+        desc: "Convert temperature, distance, weight & volume in real-time. See the formula, swap directions, save custom unit ratios, and browse full history.",
+        icon: "📐",
+        iconClass: "c7",
+        link: "17.Unit converter/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      },
+      // Project 18 — live
+      {
+        number: "18",
+        title: "QR Code Generator",
+        desc: "Generate QR codes from any text or URL instantly. Customize colors, download as PNG, save to history, and share with a fullscreen preview.",
+        icon: "▦",
+        iconClass: "c8",
+        link: "18.QR code generator/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · QRCode.js"
+      },
+      // Project 19 — live
+      {
+        number: "19",
+        title: "Countdown Timer",
+        desc: "Run multiple independent timers at once. Set hours, minutes and seconds, pause and resume each one, watch the color-coded progress bar, and hear a chime when time's up.",
+        icon: "⏱️",
+        iconClass: "c3",
+        link: "19.Countdown Timer/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · Web Audio API"
+      },
+      // Project 20 — live
+      {
+        number: "20",
+        title: "Name Generator",
+        desc: "Generate random male, female and unisex names by culture — American, European, Asian, Latin and Nordic. See meanings and origins, save favorites, and export as CSV or TXT.",
+        icon: "🎲",
+        iconClass: "c2",
+        link: "20.Name Generator/index.html",
+        live: true,
+        tech: "HTML · CSS · JS · localStorage"
+      }
+    ];
+
+    const grid = document.getElementById("grid");
+
+    projects.forEach(p => {
+      const tag = p.live
+        ? `<span class="tag tag-live">Live</span>`
+        : `<span class="tag tag-soon">Coming soon</span>`;
+
+      const arrow = p.live ? `<div class="arrow">→</div>` : "";
+
+      const card = document.createElement(p.live ? "a" : "div");
+      if (p.live) card.href = p.link;
+      card.className = "card" + (p.live ? "" : " coming-soon");
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="icon-wrap ${p.iconClass}">${p.icon}</div>
+          <span class="number">#${p.number}</span>
+        </div>
+        <h2>${p.title}</h2>
+        <p>${p.desc}</p>
+        <div class="card-footer">
+          ${tag}
+          ${arrow}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+  </script>
+
+</body>
+</html>

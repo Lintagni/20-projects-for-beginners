@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monthly Budget Calculator</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222636;
+      --border: #2e3347;
+      --accent: #6c63ff;
+      --accent2: #4ecdc4;
+      --danger: #ff6b6b;
+      --warning: #ffd93d;
+      --success: #6bcb77;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --radius: 12px;
+
+      --cat-rent:          #6c63ff;
+      --cat-food:          #4ecdc4;
+      --cat-transport:     #ffd93d;
+      --cat-entertainment: #ff6b9d;
+      --cat-savings:       #6bcb77;
+      --cat-other:         #f7b731;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #222636 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .logo { display: flex; align-items: center; gap: 12px; }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 20px;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.3px; }
+    h1 span { color: var(--accent); }
+
+    .profile-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .profile-bar label { font-size: 0.82rem; color: var(--text-muted); }
+    #profileName {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; padding: 6px 12px;
+      font-size: 0.85rem; width: 160px;
+    }
+    .btn {
+      padding: 7px 16px; border-radius: 8px; border: none;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-secondary{ background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-danger   { background: var(--danger);   color: #fff; }
+    .btn-success  { background: var(--success);  color: #fff; }
+
+    /* ── Alerts ── */
+    #alertBox {
+      margin: 16px 32px 0;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .alert {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 16px; border-radius: 10px;
+      font-size: 0.84rem; line-height: 1.4;
+      animation: slideIn .25s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } }
+    .alert-danger  { background: rgba(255,107,107,.15); border: 1px solid rgba(255,107,107,.4); color: #ff9a9a; }
+    .alert-warning { background: rgba(255,217,61,.12);  border: 1px solid rgba(255,217,61,.35);  color: #ffe57a; }
+    .alert-success { background: rgba(107,203,119,.12); border: 1px solid rgba(107,203,119,.35); color: #8ceba0; }
+    .alert-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Main grid ── */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      padding: 24px 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    @media (max-width: 960px) {
+      main { grid-template-columns: 1fr; }
+      #alertBox { margin: 16px 20px 0; }
+      main { padding: 20px; }
+      header { padding: 14px 20px; }
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+    }
+    .card-title {
+      font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title::before {
+      content: ''; display: block;
+      width: 3px; height: 14px;
+      background: var(--accent); border-radius: 2px;
+    }
+
+    /* ── Income ── */
+    .income-row {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .income-row label { font-size: 0.9rem; color: var(--text-muted); min-width: 130px; }
+    .input-money {
+      position: relative; flex: 1; min-width: 160px;
+    }
+    .input-money span {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text-muted); font-size: 0.95rem; pointer-events: none;
+    }
+    .input-money input {
+      width: 100%; padding: 10px 12px 10px 28px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text); font-size: 1rem;
+      transition: border-color .15s;
+    }
+    .input-money input:focus { outline: none; border-color: var(--accent); }
+    .month-picker {
+      padding: 10px 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 9px; color: var(--text); font-size: 0.88rem;
+      cursor: pointer;
+    }
+    .month-picker:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Categories table ── */
+    .cat-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .cat-table th {
+      font-size: 0.73rem; text-transform: uppercase; letter-spacing: .8px;
+      color: var(--text-muted); font-weight: 600; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    .cat-table th:not(:first-child) { text-align: right; }
+    .cat-table td { padding: 7px 10px; vertical-align: middle; }
+    .cat-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.04); transition: background .12s; }
+    .cat-table tbody tr:hover { background: rgba(255,255,255,.02); }
+
+    .cat-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 8px; flex-shrink: 0;
+    }
+    .cat-label { display: flex; align-items: center; font-size: 0.9rem; }
+
+    .cat-input {
+      width: 120px; padding: 7px 10px 7px 24px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 0.88rem;
+      text-align: right; transition: border-color .15s;
+    }
+    .cat-input:focus { outline: none; border-color: var(--accent); }
+    .cat-input-wrap { position: relative; display: inline-block; }
+    .cat-input-wrap::before {
+      content: '$'; position: absolute; left: 8px; top: 50%;
+      transform: translateY(-50%); color: var(--text-muted);
+      font-size: 0.82rem; pointer-events: none;
+    }
+
+    .pct-badge {
+      font-size: 0.78rem; padding: 2px 7px;
+      border-radius: 20px; background: rgba(255,255,255,.06);
+      color: var(--text-muted); min-width: 48px; text-align: center;
+    }
+    .pct-badge.over { background: rgba(255,107,107,.15); color: #ff9a9a; }
+
+    /* ── Summary ── */
+    .left-col { display: flex; flex-direction: column; gap: 20px; }
+    .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .stat-label { font-size: 0.73rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .7px; }
+    .stat-value { font-size: 1.35rem; font-weight: 700; margin-top: 4px; }
+    .stat-value.positive { color: var(--success); }
+    .stat-value.negative { color: var(--danger); }
+    .stat-value.neutral  { color: var(--text); }
+    .stat-sub { font-size: 0.76rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Chart ── */
+    .chart-wrap {
+      position: relative; width: 100%; max-width: 280px;
+      margin: 0 auto; aspect-ratio: 1;
+    }
+    .chart-center {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center; pointer-events: none;
+    }
+    .chart-center-value { font-size: 1.4rem; font-weight: 700; }
+    .chart-center-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* ── Legend ── */
+    .legend { display: flex; flex-direction: column; gap: 7px; margin-top: 16px; }
+    .legend-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.83rem;
+    }
+    .legend-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .legend-name { flex: 1; color: var(--text-muted); }
+    .legend-amount { font-weight: 600; }
+    .legend-pct { color: var(--text-muted); font-size: 0.77rem; min-width: 38px; text-align: right; }
+
+    /* ── Budget vs Actual ── */
+    .bva-list { display: flex; flex-direction: column; gap: 14px; }
+    .bva-item {}
+    .bva-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 5px; gap: 8px;
+    }
+    .bva-name { font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+    .bva-amounts { display: flex; gap: 14px; font-size: 0.8rem; }
+    .bva-budget { color: var(--text-muted); }
+    .bva-actual { font-weight: 600; }
+    .bva-actual.over { color: var(--danger); }
+    .bva-actual.ok   { color: var(--success); }
+
+    .progress-track {
+      height: 6px; background: var(--surface2);
+      border-radius: 10px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 10px;
+      transition: width .4s ease;
+    }
+
+    /* ── Footer ── */
+    .totals-row {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      padding: 14px 16px;
+      background: var(--surface2); border-radius: 10px;
+      margin-top: 4px;
+    }
+    .totals-row .t-item { flex: 1; min-width: 120px; }
+    .totals-row .t-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .7px; }
+    .totals-row .t-val { font-size: 1rem; font-weight: 700; margin-top: 3px; }
+
+    /* ── Profile list ── */
+    .profile-list {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+    }
+    .profile-chip {
+      padding: 5px 12px; border-radius: 20px;
+      background: var(--surface2); border: 1px solid var(--border);
+      font-size: 0.8rem; cursor: pointer; transition: border-color .15s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .profile-chip:hover { border-color: var(--accent); }
+    .profile-chip .del-chip {
+      font-size: 0.75rem; color: var(--text-muted);
+      cursor: pointer; padding: 0 2px;
+    }
+    .profile-chip .del-chip:hover { color: var(--danger); }
+
+    .empty-state {
+      text-align: center; color: var(--text-muted);
+      font-size: 0.85rem; padding: 16px;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">💰</div>
+    <h1>Budget <span>Calculator</span></h1>
+  </div>
+  <div class="profile-bar">
+    <label for="profileName">Profile name</label>
+    <input type="text" id="profileName" placeholder="e.g. April 2026" />
+    <button class="btn btn-primary" onclick="saveProfile()">💾 Save</button>
+    <button class="btn btn-secondary" onclick="clearAll()">✕ Clear</button>
+  </div>
+</header>
+
+<div id="alertBox"></div>
+
+<main>
+  <!-- LEFT COLUMN -->
+  <div class="left-col">
+
+    <!-- Income -->
+    <div class="card">
+      <div class="card-title">Monthly Income</div>
+      <div class="income-row">
+        <label for="income">Net monthly income</label>
+        <div class="input-money">
+          <span>$</span>
+          <input type="number" id="income" placeholder="0.00" min="0" step="0.01" oninput="update()" />
+        </div>
+        <input type="month" id="monthPicker" class="month-picker" oninput="update()" />
+      </div>
+    </div>
+
+    <!-- Expense Categories -->
+    <div class="card">
+      <div class="card-title">Expense Categories</div>
+      <table class="cat-table">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Budget</th>
+            <th>Actual</th>
+            <th>% of Income</th>
+          </tr>
+        </thead>
+        <tbody id="catBody"></tbody>
+        <tfoot>
+          <tr>
+            <td style="font-weight:700;font-size:.88rem;padding:10px 10px 6px;">Total</td>
+            <td style="text-align:right;padding:10px 10px 6px;">
+              <span id="totalBudgetCell" style="font-weight:700;font-size:.9rem;"></span>
+            </td>
+            <td style="text-align:right;padding:10px 10px 6px;">
+              <span id="totalActualCell" style="font-weight:700;font-size:.9rem;"></span>
+            </td>
+            <td style="text-align:right;padding:10px 10px 6px;">
+              <span id="totalPctCell" class="pct-badge"></span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Budget vs Actual -->
+    <div class="card">
+      <div class="card-title">Budget vs Actual</div>
+      <div id="bvaList" class="bva-list"></div>
+      <div class="totals-row" style="margin-top:16px;">
+        <div class="t-item">
+          <div class="t-label">Total Budget</div>
+          <div class="t-val" id="bvaTotalBudget">$0.00</div>
+        </div>
+        <div class="t-item">
+          <div class="t-label">Total Actual</div>
+          <div class="t-val" id="bvaTotalActual">$0.00</div>
+        </div>
+        <div class="t-item">
+          <div class="t-label">Variance</div>
+          <div class="t-val" id="bvaVariance">$0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Saved Profiles -->
+    <div class="card">
+      <div class="card-title">Saved Profiles</div>
+      <div id="profileList" class="profile-list">
+        <div class="empty-state">No saved profiles yet.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right-col">
+
+    <!-- Summary Stats -->
+    <div class="card">
+      <div class="card-title">Summary</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Monthly Income</div>
+          <div class="stat-value neutral" id="statIncome">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value neutral" id="statExpenses">$0.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Remaining</div>
+          <div class="stat-value" id="statRemaining">$0.00</div>
+          <div class="stat-sub" id="statRemainingPct"></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Budget Used</div>
+          <div class="stat-value" id="statBudgetUsed">0%</div>
+          <div class="stat-sub" id="statBudgetStatus"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pie Chart -->
+    <div class="card">
+      <div class="card-title">Spending Breakdown</div>
+      <div class="chart-wrap">
+        <canvas id="pieChart"></canvas>
+        <div class="chart-center">
+          <div class="chart-center-value" id="chartCenterValue">$0</div>
+          <div class="chart-center-label">spent</div>
+        </div>
+      </div>
+      <div class="legend" id="chartLegend"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+/* ── Data ─────────────────────────────────────────────────── */
+const CATEGORIES = [
+  { id: 'rent',          label: 'Rent / Housing',  color: 'var(--cat-rent)',          hex: '#6c63ff' },
+  { id: 'food',          label: 'Food & Groceries', color: 'var(--cat-food)',          hex: '#4ecdc4' },
+  { id: 'transport',     label: 'Transport',        color: 'var(--cat-transport)',     hex: '#ffd93d' },
+  { id: 'entertainment', label: 'Entertainment',    color: 'var(--cat-entertainment)', hex: '#ff6b9d' },
+  { id: 'savings',       label: 'Savings',          color: 'var(--cat-savings)',       hex: '#6bcb77' },
+  { id: 'other',         label: 'Other',            color: 'var(--cat-other)',         hex: '#f7b731' },
+];
+
+let pieChart = null;
+
+/* ── Build category rows ─────────────────────────────────── */
+function buildCatRows() {
+  const tbody = document.getElementById('catBody');
+  tbody.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <span class="cat-label">
+          <span class="cat-dot" style="background:${cat.color}"></span>
+          ${cat.label}
+        </span>
+      </td>
+      <td style="text-align:right">
+        <div class="cat-input-wrap">
+          <input class="cat-input" type="number" id="budget_${cat.id}"
+            placeholder="0.00" min="0" step="0.01" oninput="update()" />
+        </div>
+      </td>
+      <td style="text-align:right">
+        <div class="cat-input-wrap">
+          <input class="cat-input" type="number" id="actual_${cat.id}"
+            placeholder="0.00" min="0" step="0.01" oninput="update()" />
+        </div>
+      </td>
+      <td style="text-align:right">
+        <span class="pct-badge" id="pct_${cat.id}">—</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+const fmt = v => '$' + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const val  = id => parseFloat(document.getElementById(id)?.value) || 0;
+
+function getValues() {
+  return CATEGORIES.map(cat => ({
+    ...cat,
+    budget: val('budget_' + cat.id),
+    actual: val('actual_' + cat.id),
+  }));
+}
+
+/* ── Main update ─────────────────────────────────────────── */
+function update() {
+  const income  = val('income');
+  const cats    = getValues();
+  const totalBudget = cats.reduce((s, c) => s + c.budget, 0);
+  const totalActual = cats.reduce((s, c) => s + c.actual, 0);
+  const remaining   = income - totalActual;
+  const usedPct     = income > 0 ? (totalActual / income) * 100 : 0;
+
+  /* ── Per-category % badges ── */
+  cats.forEach(cat => {
+    const el = document.getElementById('pct_' + cat.id);
+    if (!el) return;
+    if (income > 0 && cat.actual > 0) {
+      const p = ((cat.actual / income) * 100).toFixed(1);
+      el.textContent = p + '%';
+      el.classList.toggle('over', cat.budget > 0 && cat.actual > cat.budget);
+    } else {
+      el.textContent = '—';
+      el.classList.remove('over');
+    }
+  });
+
+  /* ── Totals row ── */
+  document.getElementById('totalBudgetCell').textContent = fmt(totalBudget);
+  document.getElementById('totalActualCell').textContent = fmt(totalActual);
+  const tPct = document.getElementById('totalPctCell');
+  if (income > 0) {
+    tPct.textContent = ((totalActual / income) * 100).toFixed(1) + '%';
+    tPct.classList.toggle('over', totalActual > income);
+  } else {
+    tPct.textContent = '—';
+    tPct.classList.remove('over');
+  }
+
+  /* ── Summary stats ── */
+  document.getElementById('statIncome').textContent   = fmt(income);
+  document.getElementById('statExpenses').textContent = fmt(totalActual);
+
+  const remEl = document.getElementById('statRemaining');
+  remEl.textContent = fmt(remaining);
+  remEl.className   = 'stat-value ' + (remaining >= 0 ? 'positive' : 'negative');
+  document.getElementById('statRemainingPct').textContent =
+    income > 0 ? ((remaining / income) * 100).toFixed(1) + '% of income' : '';
+
+  const usedEl = document.getElementById('statBudgetUsed');
+  usedEl.textContent = usedPct.toFixed(1) + '%';
+  usedEl.className   = 'stat-value ' + (usedPct <= 80 ? 'positive' : usedPct <= 100 ? 'neutral' : 'negative');
+  document.getElementById('statBudgetStatus').textContent =
+    totalActual <= totalBudget ? 'Within budget' : 'Over budget';
+
+  /* ── Pie chart ── */
+  updateChart(cats, totalActual);
+
+  /* ── Legend ── */
+  updateLegend(cats, totalActual, income);
+
+  /* ── Budget vs Actual ── */
+  updateBVA(cats, totalBudget, totalActual);
+
+  /* ── Alerts ── */
+  renderAlerts(cats, income, totalActual, totalBudget, remaining);
+}
+
+/* ── Pie Chart ──────────────────────────────────────────── */
+function updateChart(cats, totalActual) {
+  const active = cats.filter(c => c.actual > 0);
+  const labels = active.map(c => c.label);
+  const data   = active.map(c => c.actual);
+  const colors = active.map(c => c.hex);
+  const borders= active.map(() => 'rgba(0,0,0,.35)');
+
+  document.getElementById('chartCenterValue').textContent =
+    '$' + totalActual.toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+  if (!pieChart) {
+    pieChart = new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: borders, borderWidth: 2, hoverOffset: 8 }] },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const v = ctx.parsed;
+                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                const pct = total > 0 ? ((v / total) * 100).toFixed(1) : 0;
+                return ` ${fmt(v)}  (${pct}%)`;
+              }
+            },
+            backgroundColor: '#1a1d27',
+            titleColor: '#e2e8f0',
+            bodyColor: '#8892a4',
+            borderColor: '#2e3347',
+            borderWidth: 1,
+            padding: 10,
+          }
+        },
+        animation: { duration: 350 }
+      }
+    });
+  } else {
+    pieChart.data.labels = labels;
+    pieChart.data.datasets[0].data         = data;
+    pieChart.data.datasets[0].backgroundColor = colors;
+    pieChart.data.datasets[0].borderColor     = borders;
+    pieChart.update();
+  }
+}
+
+/* ── Legend ─────────────────────────────────────────────── */
+function updateLegend(cats, totalActual, income) {
+  const legend = document.getElementById('chartLegend');
+  legend.innerHTML = '';
+  const active = cats.filter(c => c.actual > 0);
+  if (active.length === 0) {
+    legend.innerHTML = '<div class="empty-state">Enter actual expenses to see breakdown.</div>';
+    return;
+  }
+  active.forEach(cat => {
+    const pct = totalActual > 0 ? ((cat.actual / totalActual) * 100).toFixed(1) : 0;
+    const incPct = income > 0 ? ((cat.actual / income) * 100).toFixed(1) : '—';
+    const div = document.createElement('div');
+    div.className = 'legend-item';
+    div.innerHTML = `
+      <span class="legend-dot" style="background:${cat.color}"></span>
+      <span class="legend-name">${cat.label}</span>
+      <span class="legend-amount">${fmt(cat.actual)}</span>
+      <span class="legend-pct">${pct}%</span>
+    `;
+    legend.appendChild(div);
+  });
+}
+
+/* ── Budget vs Actual ───────────────────────────────────── */
+function updateBVA(cats, totalBudget, totalActual) {
+  const list = document.getElementById('bvaList');
+  list.innerHTML = '';
+
+  cats.forEach(cat => {
+    if (cat.budget === 0 && cat.actual === 0) return;
+    const over  = cat.budget > 0 && cat.actual > cat.budget;
+    const fillW = cat.budget > 0
+      ? Math.min((cat.actual / cat.budget) * 100, 100) + '%'
+      : cat.actual > 0 ? '100%' : '0%';
+    const fillColor = over ? 'var(--danger)' : cat.color;
+
+    const div = document.createElement('div');
+    div.className = 'bva-item';
+    div.innerHTML = `
+      <div class="bva-row">
+        <span class="bva-name">
+          <span class="cat-dot" style="background:${cat.color}"></span>
+          ${cat.label}
+        </span>
+        <div class="bva-amounts">
+          <span class="bva-budget">Budget: ${fmt(cat.budget)}</span>
+          <span class="bva-actual ${over ? 'over' : 'ok'}">Actual: ${fmt(cat.actual)}</span>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${fillW};background:${fillColor}"></div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+
+  if (list.innerHTML === '') {
+    list.innerHTML = '<div class="empty-state">Enter budget and actual amounts to compare.</div>';
+  }
+
+  const variance = totalBudget - totalActual;
+  document.getElementById('bvaTotalBudget').textContent = fmt(totalBudget);
+  document.getElementById('bvaTotalActual').textContent = fmt(totalActual);
+  const varEl = document.getElementById('bvaVariance');
+  varEl.textContent = (variance >= 0 ? '+' : '') + fmt(Math.abs(variance)) + (variance >= 0 ? ' under' : ' over');
+  varEl.style.color = variance >= 0 ? 'var(--success)' : 'var(--danger)';
+}
+
+/* ── Alerts ─────────────────────────────────────────────── */
+function renderAlerts(cats, income, totalActual, totalBudget, remaining) {
+  const box = document.getElementById('alertBox');
+  box.innerHTML = '';
+  const alerts = [];
+
+  // Over income
+  if (income > 0 && totalActual > income) {
+    alerts.push({ type: 'danger', icon: '🚨', msg: `Total spending <strong>${fmt(totalActual)}</strong> exceeds your income of <strong>${fmt(income)}</strong> by <strong>${fmt(totalActual - income)}</strong>.` });
+  } else if (income > 0 && totalActual > income * 0.95) {
+    alerts.push({ type: 'warning', icon: '⚠️', msg: `You're using ${((totalActual/income)*100).toFixed(1)}% of your income — very little left over.` });
+  }
+
+  // Over total budget
+  if (totalBudget > 0 && totalActual > totalBudget) {
+    alerts.push({ type: 'warning', icon: '📊', msg: `Actual spending exceeds total budget by <strong>${fmt(totalActual - totalBudget)}</strong>.` });
+  }
+
+  // Per-category overruns
+  cats.forEach(cat => {
+    if (cat.budget > 0 && cat.actual > cat.budget) {
+      const over = cat.actual - cat.budget;
+      const overPct = ((over / cat.budget) * 100).toFixed(0);
+      alerts.push({ type: 'danger', icon: '❌', msg: `<strong>${cat.label}</strong> is over budget by <strong>${fmt(over)}</strong> (+${overPct}%).` });
+    } else if (cat.budget > 0 && cat.actual > cat.budget * 0.9) {
+      alerts.push({ type: 'warning', icon: '⚡', msg: `<strong>${cat.label}</strong> is at ${((cat.actual/cat.budget)*100).toFixed(0)}% of its budget.` });
+    }
+  });
+
+  // All good
+  if (alerts.length === 0 && income > 0 && totalActual > 0 && totalActual <= totalBudget) {
+    alerts.push({ type: 'success', icon: '✅', msg: `You're within budget! You have <strong>${fmt(remaining)}</strong> remaining this month.` });
+  }
+
+  alerts.forEach(a => {
+    const div = document.createElement('div');
+    div.className = `alert alert-${a.type}`;
+    div.innerHTML = `<span class="alert-icon">${a.icon}</span><span>${a.msg}</span>`;
+    box.appendChild(div);
+  });
+}
+
+/* ── Save / Load Profiles ───────────────────────────────── */
+function getProfileData() {
+  const cats = {};
+  CATEGORIES.forEach(cat => {
+    cats[cat.id] = { budget: val('budget_' + cat.id), actual: val('actual_' + cat.id) };
+  });
+  return {
+    income: val('income'),
+    month: document.getElementById('monthPicker').value,
+    categories: cats,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+function applyProfileData(data) {
+  document.getElementById('income').value = data.income || '';
+  document.getElementById('monthPicker').value = data.month || '';
+  if (data.categories) {
+    CATEGORIES.forEach(cat => {
+      const c = data.categories[cat.id] || {};
+      const bEl = document.getElementById('budget_' + cat.id);
+      const aEl = document.getElementById('actual_' + cat.id);
+      if (bEl) bEl.value = c.budget || '';
+      if (aEl) aEl.value = c.actual || '';
+    });
+  }
+  update();
+}
+
+function saveProfile() {
+  const name = document.getElementById('profileName').value.trim();
+  if (!name) { alert('Please enter a profile name before saving.'); return; }
+  const profiles = loadProfiles();
+  profiles[name] = getProfileData();
+  localStorage.setItem('budgetProfiles', JSON.stringify(profiles));
+  renderProfileList();
+  // brief flash
+  const btn = event.target;
+  btn.textContent = '✓ Saved!';
+  setTimeout(() => { btn.textContent = '💾 Save'; }, 1500);
+}
+
+function loadProfiles() {
+  try { return JSON.parse(localStorage.getItem('budgetProfiles') || '{}'); } catch { return {}; }
+}
+
+function loadProfile(name) {
+  const profiles = loadProfiles();
+  if (profiles[name]) {
+    document.getElementById('profileName').value = name;
+    applyProfileData(profiles[name]);
+  }
+}
+
+function deleteProfile(name) {
+  if (!confirm(`Delete profile "${name}"?`)) return;
+  const profiles = loadProfiles();
+  delete profiles[name];
+  localStorage.setItem('budgetProfiles', JSON.stringify(profiles));
+  renderProfileList();
+}
+
+function renderProfileList() {
+  const profiles = loadProfiles();
+  const el = document.getElementById('profileList');
+  const keys = Object.keys(profiles);
+  if (keys.length === 0) {
+    el.innerHTML = '<div class="empty-state">No saved profiles yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  keys.forEach(name => {
+    const chip = document.createElement('div');
+    chip.className = 'profile-chip';
+    chip.innerHTML = `
+      <span onclick="loadProfile('${CSS.escape(name)}')" style="flex:1">${name}</span>
+      <span class="del-chip" onclick="deleteProfile('${CSS.escape(name)}')" title="Delete">✕</span>
+    `;
+    // Fix: use data attributes to avoid escaping issues
+    chip.querySelector('span:first-child').addEventListener('click', () => loadProfile(name));
+    chip.querySelector('.del-chip').addEventListener('click', e => { e.stopPropagation(); deleteProfile(name); });
+    chip.querySelector('span:first-child').removeAttribute('onclick');
+    chip.querySelector('.del-chip').removeAttribute('onclick');
+    el.appendChild(chip);
+  });
+}
+
+function clearAll() {
+  if (!confirm('Clear all inputs?')) return;
+  document.getElementById('income').value = '';
+  document.getElementById('monthPicker').value = '';
+  document.getElementById('profileName').value = '';
+  CATEGORIES.forEach(cat => {
+    const b = document.getElementById('budget_' + cat.id);
+    const a = document.getElementById('actual_' + cat.id);
+    if (b) b.value = '';
+    if (a) a.value = '';
+  });
+  update();
+}
+
+/* ── Init ───────────────────────────────────────────────── */
+function init() {
+  // Set current month
+  const now = new Date();
+  document.getElementById('monthPicker').value =
+    now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
+  buildCatRows();
+  renderProfileList();
+  update();
+}
+
+init();
+</script>
+</body>
+</html>

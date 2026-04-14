@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Name Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f1a;
+      --surface: rgba(255,255,255,0.04);
+      --surface-solid: #151824;
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(99,102,241,0.6);
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --text: #e8e8f4;
+      --text-muted: #7878a0;
+      --text-dim: #4a4a6a;
+      --green: #34d399;
+      --red: #f87171;
+      --pink: #f472b6;
+      --blue: #60a5fa;
+      --purple: #c084fc;
+      --radius: 20px;
+      --radius-sm: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f0f2ff;
+      --surface: rgba(255,255,255,0.8);
+      --surface-solid: #ffffff;
+      --surface-hover: rgba(255,255,255,0.95);
+      --border: rgba(0,0,0,0.1);
+      --border-focus: rgba(99,102,241,0.5);
+      --text: #1a1a2e;
+      --text-muted: #5a5a7a;
+      --text-dim: #9090b0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 1.25rem 5rem;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 15% 5%, rgba(99,102,241,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 85%, rgba(192,132,252,0.09) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 2.5rem 0 2rem; flex-wrap: wrap; gap: 1rem;
+    }
+
+    .header-left h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    [data-theme="light"] .header-left h1 {
+      background: linear-gradient(135deg, #1a1a2e 30%, var(--accent));
+      -webkit-background-clip: text; background-clip: text;
+    }
+    .header-left p { color: var(--text-muted); font-size: 0.88rem; margin-top: 0.3rem; }
+
+    .theme-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 1.05rem; display: grid; place-items: center;
+      backdrop-filter: blur(10px); transition: background 0.2s, transform 0.2s;
+    }
+    .theme-btn:hover { background: var(--surface-hover); transform: scale(1.08); }
+
+    /* ── Controls card ── */
+    .controls-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1.75rem;
+      backdrop-filter: blur(20px); margin-bottom: 1.25rem; position: relative; overflow: hidden;
+    }
+    .controls-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-light), transparent); opacity: 0.4;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+
+    .field-label {
+      font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.07em; text-transform: uppercase;
+    }
+
+    .field-select, .field-input {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0.62rem 0.85rem;
+      color: var(--text); font-family: 'Inter', sans-serif; font-size: 0.88rem;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; width: 100%;
+      appearance: none; -webkit-appearance: none;
+    }
+    [data-theme="light"] .field-select,
+    [data-theme="light"] .field-input { background: rgba(255,255,255,0.8); }
+    .field-select:focus, .field-input:focus {
+      border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .field-select { cursor: pointer; }
+
+    .btn-generate {
+      padding: 0.65rem 1.4rem; border-radius: var(--radius-sm);
+      border: none; background: var(--accent); color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; box-shadow: 0 4px 18px var(--accent-glow);
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .btn-generate:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .btn-generate:active { transform: translateY(0); }
+
+    /* ── Results ── */
+    .results-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1.75rem;
+      backdrop-filter: blur(20px); margin-bottom: 1.25rem;
+      min-height: 120px;
+    }
+
+    .results-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem;
+    }
+
+    .section-title {
+      font-size: 0.95rem; font-weight: 600;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .count-badge {
+      font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem;
+      border-radius: 999px; background: rgba(99,102,241,0.15); color: var(--accent-light);
+    }
+
+    .names-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .name-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 1rem 1.1rem;
+      display: flex; flex-direction: column; gap: 0.4rem;
+      transition: border-color 0.2s, background 0.2s;
+      animation: popIn 0.22s ease both;
+    }
+    [data-theme="light"] .name-card { background: rgba(255,255,255,0.6); }
+    .name-card:hover { border-color: rgba(99,102,241,0.3); background: var(--surface-hover); }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.94) translateY(6px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .name-full {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem; font-weight: 600; color: var(--text);
+    }
+
+    .name-meta {
+      display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+    }
+
+    .gender-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .gender-dot.male   { background: var(--blue); }
+    .gender-dot.female { background: var(--pink); }
+    .gender-dot.unisex { background: var(--purple); }
+
+    .name-origin {
+      font-size: 0.72rem; color: var(--text-muted); font-weight: 500;
+    }
+
+    .name-meaning {
+      font-size: 0.73rem; color: var(--text-dim); line-height: 1.4;
+      font-style: italic;
+    }
+
+    .name-actions {
+      display: flex; gap: 0.4rem; margin-top: 0.3rem;
+    }
+
+    .btn-sm {
+      display: flex; align-items: center; gap: 0.25rem;
+      padding: 0.3rem 0.65rem; border-radius: 999px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-family: 'Inter', sans-serif;
+      font-size: 0.7rem; font-weight: 600; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-sm:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+    .btn-sm.fav { color: var(--pink); border-color: rgba(244,114,182,0.3); }
+    .btn-sm.fav:hover { background: rgba(244,114,182,0.1); }
+    .btn-sm.copy:hover { border-color: var(--accent-light); color: var(--accent-light); }
+
+    /* Empty results */
+    .empty-state {
+      text-align: center; padding: 2rem 1rem;
+      color: var(--text-dim); font-size: 0.88rem;
+    }
+    .empty-state .big { font-size: 2.2rem; margin-bottom: 0.5rem; }
+
+    /* ── Favorites ── */
+    .favorites-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem 1.75rem;
+      backdrop-filter: blur(20px);
+    }
+
+    .favs-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+
+    .btn-export {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.45rem 0.9rem; border-radius: 999px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-family: 'Inter', sans-serif;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-export:hover { border-color: var(--green); color: var(--green); }
+
+    .favs-list {
+      display: flex; flex-direction: column; gap: 0.5rem;
+      max-height: 400px; overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+
+    .fav-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); animation: slideIn 0.22s ease;
+    }
+    [data-theme="light"] .fav-item { background: rgba(255,255,255,0.6); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .fav-name {
+      flex: 1; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.92rem; font-weight: 600;
+    }
+
+    .fav-tags {
+      display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0;
+    }
+
+    .tag {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em;
+      padding: 0.15rem 0.5rem; border-radius: 999px; text-transform: uppercase;
+    }
+    .tag-gender-male   { background: rgba(96,165,250,0.1); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+    .tag-gender-female { background: rgba(244,114,182,0.1); color: var(--pink); border: 1px solid rgba(244,114,182,0.2); }
+    .tag-gender-unisex { background: rgba(192,132,252,0.1); color: var(--purple); border: 1px solid rgba(192,132,252,0.2); }
+    .tag-style         { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .fav-del {
+      width: 24px; height: 24px; border-radius: 50%; border: none;
+      background: transparent; color: var(--text-dim); cursor: pointer;
+      font-size: 0.7rem; display: grid; place-items: center;
+      transition: color 0.2s, background 0.2s;
+    }
+    .fav-del:hover { color: var(--red); background: rgba(248,113,113,0.1); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--accent); color: #fff;
+      padding: 0.65rem 1.4rem; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 8px 28px rgba(99,102,241,0.4);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 560px) {
+      .names-grid { grid-template-columns: 1fr; }
+      .controls-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-left">
+      <h1>Name Generator</h1>
+      <p>Random names by gender, style and culture — with origins and meanings</p>
+    </div>
+    <button class="theme-btn" id="themeBtn">🌙</button>
+  </header>
+
+  <!-- Controls -->
+  <div class="controls-card">
+    <div class="controls-grid">
+      <div class="field">
+        <label class="field-label">Gender</label>
+        <select class="field-select" id="selGender">
+          <option value="any">Any</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+          <option value="unisex">Unisex</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Style / Culture</label>
+        <select class="field-select" id="selStyle">
+          <option value="any">Any</option>
+          <option value="american">American</option>
+          <option value="european">European</option>
+          <option value="asian">Asian</option>
+          <option value="latin">Latin</option>
+          <option value="nordic">Nordic</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Count</label>
+        <select class="field-select" id="selCount">
+          <option value="5">5 names</option>
+          <option value="10" selected>10 names</option>
+          <option value="20">20 names</option>
+          <option value="50">50 names</option>
+        </select>
+      </div>
+      <div class="field" style="align-self:end;">
+        <button class="btn-generate" onclick="generate()">🎲 Generate Names</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-card">
+    <div class="results-header">
+      <div class="section-title">
+        ✨ Results
+        <span class="count-badge" id="resultCount">0</span>
+      </div>
+      <button class="btn-sm copy" onclick="copyAll()" id="btnCopyAll" style="display:none">📋 Copy all</button>
+    </div>
+    <div id="namesGrid" class="names-grid">
+      <div class="empty-state" style="grid-column:1/-1">
+        <div class="big">🎲</div>
+        Choose your filters and hit <strong>Generate Names</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favorites -->
+  <div class="favorites-card">
+    <div class="favs-header">
+      <div class="section-title">
+        ❤️ Favorites
+        <span class="count-badge" id="favCount">0</span>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn-export" onclick="exportTXT()">⬇ Export TXT</button>
+        <button class="btn-sm" onclick="clearFavs()" style="color:var(--red);border-color:rgba(248,113,113,0.3)">Clear</button>
+      </div>
+    </div>
+    <div class="favs-list" id="favsList"></div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   NAME DATABASE
+══════════════════════════════════════ */
+const DB = {
+  american: {
+    male: [
+      { first:'James', meaning:'Supplanter', origin:'Hebrew' },
+      { first:'William', meaning:'Resolute protector', origin:'Germanic' },
+      { first:'Oliver', meaning:'Olive tree', origin:'Latin' },
+      { first:'Benjamin', meaning:'Son of the right hand', origin:'Hebrew' },
+      { first:'Elijah', meaning:'My God is Yahweh', origin:'Hebrew' },
+      { first:'Lucas', meaning:'Light', origin:'Latin' },
+      { first:'Mason', meaning:'Stone worker', origin:'English' },
+      { first:'Logan', meaning:'Little hollow', origin:'Scottish' },
+      { first:'Ethan', meaning:'Strong, firm', origin:'Hebrew' },
+      { first:'Aiden', meaning:'Little fire', origin:'Irish' },
+      { first:'Jackson', meaning:'Son of Jack', origin:'English' },
+      { first:'Sebastian', meaning:'Revered', origin:'Greek' },
+      { first:'Mateo', meaning:'Gift of God', origin:'Spanish' },
+      { first:'Jack', meaning:'God is gracious', origin:'English' },
+      { first:'Owen', meaning:'Young warrior', origin:'Welsh' },
+    ],
+    female: [
+      { first:'Emma', meaning:'Whole, universal', origin:'Germanic' },
+      { first:'Olivia', meaning:'Olive tree', origin:'Latin' },
+      { first:'Ava', meaning:'Life, bird-like', origin:'Latin' },
+      { first:'Sophia', meaning:'Wisdom', origin:'Greek' },
+      { first:'Isabella', meaning:'Devoted to God', origin:'Hebrew' },
+      { first:'Mia', meaning:'Mine, beloved', origin:'Scandinavian' },
+      { first:'Charlotte', meaning:'Free woman', origin:'French' },
+      { first:'Amelia', meaning:'Work, industrious', origin:'Germanic' },
+      { first:'Harper', meaning:'Harp player', origin:'English' },
+      { first:'Evelyn', meaning:'Wished-for child', origin:'English' },
+      { first:'Abigail', meaning:'Father\'s joy', origin:'Hebrew' },
+      { first:'Emily', meaning:'Rival, eager', origin:'Latin' },
+      { first:'Ella', meaning:'All, completely', origin:'Germanic' },
+      { first:'Madison', meaning:'Son of Matthew', origin:'English' },
+      { first:'Scarlett', meaning:'Red', origin:'English' },
+    ],
+    unisex: [
+      { first:'Taylor', meaning:'Tailor', origin:'English' },
+      { first:'Jordan', meaning:'To flow down', origin:'Hebrew' },
+      { first:'Alex', meaning:'Defender of people', origin:'Greek' },
+      { first:'Cameron', meaning:'Crooked nose', origin:'Scottish' },
+      { first:'Riley', meaning:'Rye clearing', origin:'Irish' },
+      { first:'Morgan', meaning:'Sea circle', origin:'Welsh' },
+      { first:'Avery', meaning:'Ruler of elves', origin:'English' },
+      { first:'Quinn', meaning:'Counsel', origin:'Irish' },
+      { first:'Blake', meaning:'Black, pale', origin:'English' },
+      { first:'Drew', meaning:'Manly', origin:'Greek' },
+    ],
+    lastNames: ['Smith','Johnson','Williams','Brown','Jones','Garcia','Miller','Davis','Wilson','Moore','Taylor','Anderson','Thomas','Jackson','White','Harris','Martin','Thompson','Robinson','Clark'],
+  },
+  european: {
+    male: [
+      { first:'Luca', meaning:'Light', origin:'Italian' },
+      { first:'Matteo', meaning:'Gift of God', origin:'Italian' },
+      { first:'Leon', meaning:'Lion', origin:'Greek' },
+      { first:'Finn', meaning:'Fair', origin:'Irish' },
+      { first:'Elias', meaning:'My God is Yahweh', origin:'Greek' },
+      { first:'Noah', meaning:'Rest, comfort', origin:'Hebrew' },
+      { first:'Lukas', meaning:'Light', origin:'German' },
+      { first:'Felix', meaning:'Happy, lucky', origin:'Latin' },
+      { first:'Henrik', meaning:'Home ruler', origin:'Scandinavian' },
+      { first:'Tobias', meaning:'God is good', origin:'Hebrew' },
+      { first:'Bastian', meaning:'Revered', origin:'Greek' },
+      { first:'Rafael', meaning:'God has healed', origin:'Hebrew' },
+      { first:'Dominic', meaning:'Belonging to God', origin:'Latin' },
+      { first:'Emil', meaning:'Rival', origin:'Latin' },
+      { first:'Florian', meaning:'Flower, flourishing', origin:'Latin' },
+    ],
+    female: [
+      { first:'Sofia', meaning:'Wisdom', origin:'Greek' },
+      { first:'Elena', meaning:'Bright, shining light', origin:'Greek' },
+      { first:'Mila', meaning:'Gracious, dear', origin:'Slavic' },
+      { first:'Freya', meaning:'Noble woman', origin:'Norse' },
+      { first:'Ingrid', meaning:'Beautiful, beloved', origin:'Norse' },
+      { first:'Valentina', meaning:'Strong, vigorous', origin:'Latin' },
+      { first:'Clara', meaning:'Bright, clear', origin:'Latin' },
+      { first:'Nora', meaning:'Honor', origin:'Irish' },
+      { first:'Astrid', meaning:'Divinely beautiful', origin:'Norse' },
+      { first:'Bianca', meaning:'White, pure', origin:'Italian' },
+      { first:'Elsa', meaning:'Pledged to God', origin:'Hebrew' },
+      { first:'Lucia', meaning:'Light', origin:'Latin' },
+      { first:'Vera', meaning:'Faith, truth', origin:'Latin' },
+      { first:'Iris', meaning:'Rainbow', origin:'Greek' },
+      { first:'Claudia', meaning:'Lame', origin:'Latin' },
+    ],
+    unisex: [
+      { first:'Robin', meaning:'Bright fame', origin:'Germanic' },
+      { first:'Sam', meaning:'Heard by God', origin:'Hebrew' },
+      { first:'Lou', meaning:'Famous warrior', origin:'Germanic' },
+      { first:'Sasha', meaning:'Defender', origin:'Greek' },
+      { first:'Nico', meaning:'Victory of the people', origin:'Greek' },
+      { first:'Jo', meaning:'God is gracious', origin:'Hebrew' },
+      { first:'Kim', meaning:'Warrior chief', origin:'English' },
+      { first:'René', meaning:'Reborn', origin:'French' },
+    ],
+    lastNames: ['Müller','Schmidt','Fischer','Weber','Meyer','Wagner','Schneider','Becker','Hoffmann','Ricci','Ferrari','Russo','Esposito','Bianchi','Laurent','Bernard','Thomas','Robert','Simon','Michel'],
+  },
+  asian: {
+    male: [
+      { first:'Kenji', meaning:'Strong, vigorous second son', origin:'Japanese' },
+      { first:'Hiroshi', meaning:'Generous', origin:'Japanese' },
+      { first:'Wei', meaning:'Mighty, powerful', origin:'Chinese' },
+      { first:'Jian', meaning:'Healthy, strong', origin:'Chinese' },
+      { first:'Min', meaning:'Quick, clever', origin:'Korean' },
+      { first:'Ren', meaning:'Lotus, love', origin:'Japanese' },
+      { first:'Arjun', meaning:'Bright, shining', origin:'Sanskrit' },
+      { first:'Rohan', meaning:'Ascending', origin:'Sanskrit' },
+      { first:'Yuto', meaning:'Gentle, superior', origin:'Japanese' },
+      { first:'Hao', meaning:'Good, brave', origin:'Chinese' },
+      { first:'Jin', meaning:'Gold', origin:'Korean' },
+      { first:'Ryu', meaning:'Dragon', origin:'Japanese' },
+      { first:'Vikram', meaning:'Brave, valorous', origin:'Sanskrit' },
+      { first:'Takeshi', meaning:'Fierce warrior', origin:'Japanese' },
+      { first:'Yong', meaning:'Brave, courageous', origin:'Chinese' },
+    ],
+    female: [
+      { first:'Sakura', meaning:'Cherry blossom', origin:'Japanese' },
+      { first:'Yuki', meaning:'Snow, happiness', origin:'Japanese' },
+      { first:'Mei', meaning:'Beautiful', origin:'Chinese' },
+      { first:'Xiu', meaning:'Elegant, beautiful', origin:'Chinese' },
+      { first:'Ji-yeon', meaning:'Wisdom, lotus', origin:'Korean' },
+      { first:'Aiko', meaning:'Love child', origin:'Japanese' },
+      { first:'Priya', meaning:'Beloved', origin:'Sanskrit' },
+      { first:'Ananya', meaning:'Unique, matchless', origin:'Sanskrit' },
+      { first:'Rin', meaning:'Cold, dignified', origin:'Japanese' },
+      { first:'Lan', meaning:'Orchid', origin:'Vietnamese' },
+      { first:'Nari', meaning:'Lily', origin:'Korean' },
+      { first:'Hana', meaning:'Flower, blossom', origin:'Japanese' },
+      { first:'Divya', meaning:'Divine, heavenly', origin:'Sanskrit' },
+      { first:'Yuna', meaning:'Gentle, affection', origin:'Korean' },
+      { first:'Mei-Ling', meaning:'Beautiful jade', origin:'Chinese' },
+    ],
+    unisex: [
+      { first:'Kai', meaning:'Sea, ocean', origin:'Japanese' },
+      { first:'Sora', meaning:'Sky', origin:'Japanese' },
+      { first:'Aki', meaning:'Autumn, bright', origin:'Japanese' },
+      { first:'Tao', meaning:'The Way', origin:'Chinese' },
+      { first:'An', meaning:'Peace, quiet', origin:'Vietnamese' },
+      { first:'Ryo', meaning:'Excellent, distant', origin:'Japanese' },
+    ],
+    lastNames: ['Tanaka','Watanabe','Suzuki','Sato','Yamamoto','Chen','Wang','Li','Zhang','Liu','Kim','Park','Lee','Choi','Patel','Sharma','Singh','Kumar','Nguyen','Tran'],
+  },
+  latin: {
+    male: [
+      { first:'Santiago', meaning:'Saint James', origin:'Spanish' },
+      { first:'Alejandro', meaning:'Defender of people', origin:'Greek' },
+      { first:'Diego', meaning:'Supplanter', origin:'Spanish' },
+      { first:'Sebastián', meaning:'Revered', origin:'Greek' },
+      { first:'Emilio', meaning:'Rival, eager', origin:'Latin' },
+      { first:'Rafael', meaning:'God has healed', origin:'Hebrew' },
+      { first:'Antonio', meaning:'Priceless, praiseworthy', origin:'Latin' },
+      { first:'Carlos', meaning:'Free man', origin:'Germanic' },
+      { first:'Luis', meaning:'Famous warrior', origin:'Germanic' },
+      { first:'Marco', meaning:'Of Mars, warlike', origin:'Latin' },
+      { first:'Rodrigo', meaning:'Famous ruler', origin:'Germanic' },
+      { first:'Andrés', meaning:'Manly, brave', origin:'Greek' },
+      { first:'Nicolás', meaning:'Victory of the people', origin:'Greek' },
+      { first:'Felipe', meaning:'Lover of horses', origin:'Greek' },
+      { first:'Javier', meaning:'New house', origin:'Basque' },
+    ],
+    female: [
+      { first:'Valentina', meaning:'Strong, vigorous', origin:'Latin' },
+      { first:'Isabella', meaning:'Devoted to God', origin:'Hebrew' },
+      { first:'Camila', meaning:'Attendant at a ritual', origin:'Latin' },
+      { first:'Lucia', meaning:'Light', origin:'Latin' },
+      { first:'Sofía', meaning:'Wisdom', origin:'Greek' },
+      { first:'Gabriela', meaning:'God is my strength', origin:'Hebrew' },
+      { first:'Martina', meaning:'Of Mars, warlike', origin:'Latin' },
+      { first:'Daniela', meaning:'God is my judge', origin:'Hebrew' },
+      { first:'Fernanda', meaning:'Adventurous, bold journey', origin:'Germanic' },
+      { first:'Catalina', meaning:'Pure', origin:'Greek' },
+      { first:'Paula', meaning:'Small, humble', origin:'Latin' },
+      { first:'Adriana', meaning:'From Hadria', origin:'Latin' },
+      { first:'Elena', meaning:'Bright shining light', origin:'Greek' },
+      { first:'Andrea', meaning:'Womanly', origin:'Greek' },
+      { first:'Carolina', meaning:'Free woman', origin:'Germanic' },
+    ],
+    unisex: [
+      { first:'Cruz', meaning:'Cross', origin:'Spanish' },
+      { first:'Paz', meaning:'Peace', origin:'Spanish' },
+      { first:'Leal', meaning:'Loyal', origin:'Spanish' },
+      { first:'Amor', meaning:'Love', origin:'Latin' },
+      { first:'Angel', meaning:'Messenger', origin:'Greek' },
+    ],
+    lastNames: ['García','Rodríguez','González','López','Martínez','Hernández','Pérez','Sánchez','Ramírez','Torres','Flores','Rivera','Cruz','Morales','Ortiz','Silva','Costa','Oliveira','Souza','Lima'],
+  },
+  nordic: {
+    male: [
+      { first:'Björn', meaning:'Bear', origin:'Norse' },
+      { first:'Erik', meaning:'Eternal ruler', origin:'Norse' },
+      { first:'Lars', meaning:'Laurel, victory', origin:'Scandinavian' },
+      { first:'Magnus', meaning:'Great, mighty', origin:'Latin/Norse' },
+      { first:'Sigurd', meaning:'Victory guardian', origin:'Norse' },
+      { first:'Thor', meaning:'Thunder', origin:'Norse' },
+      { first:'Leif', meaning:'Heir, descendant', origin:'Norse' },
+      { first:'Gunnar', meaning:'Bold warrior', origin:'Norse' },
+      { first:'Ragnar', meaning:'Wise warrior', origin:'Norse' },
+      { first:'Sven', meaning:'Young man', origin:'Norse' },
+      { first:'Olaf', meaning:'Ancestor\'s relic', origin:'Norse' },
+      { first:'Vidar', meaning:'Wide warrior', origin:'Norse' },
+      { first:'Ivar', meaning:'Bow warrior', origin:'Norse' },
+      { first:'Halvard', meaning:'Rock guardian', origin:'Norse' },
+      { first:'Axel', meaning:'Father of peace', origin:'Norse' },
+    ],
+    female: [
+      { first:'Astrid', meaning:'Divinely beautiful', origin:'Norse' },
+      { first:'Sigrid', meaning:'Beautiful victory', origin:'Norse' },
+      { first:'Ingrid', meaning:'Beautiful, beloved', origin:'Norse' },
+      { first:'Freya', meaning:'Noble woman', origin:'Norse' },
+      { first:'Ragnhild', meaning:'Battle spirit', origin:'Norse' },
+      { first:'Solveig', meaning:'Daughter of the sun', origin:'Norse' },
+      { first:'Thora', meaning:'Thunder', origin:'Norse' },
+      { first:'Gudrun', meaning:'God\'s secret lore', origin:'Norse' },
+      { first:'Helga', meaning:'Holy, blessed', origin:'Norse' },
+      { first:'Brynja', meaning:'Armor', origin:'Norse' },
+      { first:'Sif', meaning:'Bride, kinswoman', origin:'Norse' },
+      { first:'Runa', meaning:'Secret lore', origin:'Norse' },
+      { first:'Ylva', meaning:'She-wolf', origin:'Norse' },
+      { first:'Eira', meaning:'Snow', origin:'Norse' },
+      { first:'Hilde', meaning:'Battle', origin:'Norse' },
+    ],
+    unisex: [
+      { first:'Sae', meaning:'Rapid, divine', origin:'Norse' },
+      { first:'Bo', meaning:'To live, dwell', origin:'Norse' },
+      { first:'Ren', meaning:'Pure', origin:'Norse' },
+      { first:'Dag', meaning:'Day', origin:'Norse' },
+      { first:'Tor', meaning:'Thunder', origin:'Norse' },
+    ],
+    lastNames: ['Andersen','Hansen','Johansson','Lindqvist','Eriksson','Larsen','Gustafsson','Nielsen','Olsen','Jensen','Strand','Berg','Holm','Dahl','Lund','Björk','Vik','Aas','Haug','Nygaard'],
+  },
+};
+
+// Combine all styles for "any"
+function allOf(key) {
+  return Object.values(DB).flatMap(s => s[key] || []);
+}
+function allLastNames() {
+  return Object.values(DB).flatMap(s => s.lastNames);
+}
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+let results   = [];
+let favorites = JSON.parse(localStorage.getItem('ng_favs') || '[]');
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2300);
+}
+
+function genderClass(g) {
+  return g === 'male' ? 'male' : g === 'female' ? 'female' : 'unisex';
+}
+
+/* ══════════════════════════════════════
+   GENERATE
+══════════════════════════════════════ */
+function generate() {
+  const gender = document.getElementById('selGender').value;
+  const style  = document.getElementById('selStyle').value;
+  const count  = parseInt(document.getElementById('selCount').value);
+
+  const pool = [];
+
+  // Build first-name pool
+  const genders = gender === 'any' ? ['male','female','unisex'] : [gender];
+  const styles  = style  === 'any' ? Object.keys(DB) : [style];
+
+  genders.forEach(g => {
+    styles.forEach(s => {
+      const src = DB[s]?.[g] || [];
+      src.forEach(n => pool.push({ ...n, gender: g, style: s }));
+    });
+  });
+
+  if (!pool.length) { showToast('No names found for that combination'); return; }
+
+  const lastPool = style === 'any' ? allLastNames() : DB[style].lastNames;
+
+  // Shuffle and pick
+  results = [];
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  for (let i = 0; i < count; i++) {
+    const entry = shuffled[i % shuffled.length];
+    const last  = rand(lastPool);
+    results.push({ ...entry, last, id: `${Date.now()}_${i}` });
+  }
+
+  renderResults();
+}
+
+/* ══════════════════════════════════════
+   RENDER RESULTS
+══════════════════════════════════════ */
+function renderResults() {
+  const grid = document.getElementById('namesGrid');
+  document.getElementById('resultCount').textContent = results.length;
+  document.getElementById('btnCopyAll').style.display = results.length ? 'flex' : 'none';
+
+  if (!results.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="big">🎲</div>Hit Generate to see names</div>';
+    return;
+  }
+
+  grid.innerHTML = results.map(n => `
+    <div class="name-card">
+      <div class="name-full">${n.first} ${n.last}</div>
+      <div class="name-meta">
+        <div class="gender-dot ${genderClass(n.gender)}"></div>
+        <span class="name-origin">${capitalise(n.style)} · ${n.origin || '—'}</span>
+      </div>
+      ${n.meaning ? `<div class="name-meaning">"${n.meaning}"</div>` : ''}
+      <div class="name-actions">
+        <button class="btn-sm copy" onclick="copyName('${n.first} ${n.last}')">📋 Copy</button>
+        <button class="btn-sm fav" onclick="addFav(${JSON.stringify(n).replace(/"/g,'&quot;')})">❤ Save</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function capitalise(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+
+/* ══════════════════════════════════════
+   COPY
+══════════════════════════════════════ */
+function copyName(name) {
+  navigator.clipboard.writeText(name).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = name; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  showToast(`Copied: ${name}`);
+}
+
+function copyAll() {
+  const text = results.map(n => `${n.first} ${n.last}`).join('\n');
+  navigator.clipboard.writeText(text).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+  });
+  showToast(`Copied ${results.length} names!`);
+}
+
+/* ══════════════════════════════════════
+   FAVORITES
+══════════════════════════════════════ */
+function addFav(n) {
+  const full = `${n.first} ${n.last}`;
+  if (favorites.some(f => f.first === n.first && f.last === n.last)) {
+    showToast('Already in favorites!'); return;
+  }
+  favorites.unshift({ ...n, savedAt: Date.now() });
+  if (favorites.length > 100) favorites.pop();
+  localStorage.setItem('ng_favs', JSON.stringify(favorites));
+  renderFavs();
+  showToast(`❤️ Saved: ${full}`);
+}
+
+function deleteFav(idx) {
+  favorites.splice(idx, 1);
+  localStorage.setItem('ng_favs', JSON.stringify(favorites));
+  renderFavs();
+}
+
+function clearFavs() {
+  if (!favorites.length) { showToast('Nothing to clear'); return; }
+  favorites = [];
+  localStorage.removeItem('ng_favs');
+  renderFavs();
+  showToast('Favorites cleared');
+}
+
+function renderFavs() {
+  const list = document.getElementById('favsList');
+  document.getElementById('favCount').textContent = favorites.length;
+
+  if (!favorites.length) {
+    list.innerHTML = '<div class="empty-state">No favorites yet — save names from the results above</div>';
+    return;
+  }
+
+  list.innerHTML = favorites.map((n, i) => `
+    <div class="fav-item">
+      <div class="fav-name">${n.first} ${n.last}</div>
+      <div class="fav-tags">
+        <span class="tag tag-gender-${genderClass(n.gender)}">${n.gender}</span>
+        <span class="tag tag-style">${capitalise(n.style)}</span>
+      </div>
+      <button class="btn-sm copy" onclick="copyName('${n.first} ${n.last}')">📋</button>
+      <button class="fav-del" onclick="deleteFav(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+/* ══════════════════════════════════════
+   EXPORT
+══════════════════════════════════════ */
+function exportCSV() {
+  if (!favorites.length) { showToast('No favorites to export'); return; }
+  const header = 'First Name,Last Name,Gender,Style,Origin,Meaning';
+  const rows   = favorites.map(n =>
+    `"${n.first}","${n.last}","${n.gender}","${capitalise(n.style)}","${n.origin || ''}","${n.meaning || ''}"`
+  );
+  download([header, ...rows].join('\n'), 'names.csv', 'text/csv');
+  showToast('Exported as CSV!');
+}
+
+function exportTXT() {
+  if (!favorites.length) { showToast('No favorites to export'); return; }
+  const lines = favorites.map(n =>
+    `${n.first} ${n.last}  (${n.gender}, ${capitalise(n.style)}) — ${n.meaning || ''}`
+  );
+  download(lines.join('\n'), 'names.txt', 'text/plain');
+  showToast('Exported as TXT!');
+}
+
+function download(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ══════════════════════════════════════
+   THEME
+══════════════════════════════════════ */
+function initTheme() {
+  const saved = localStorage.getItem('ng_theme') || 'dark';
+  document.documentElement.dataset.theme = saved;
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+}
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur  = document.documentElement.dataset.theme;
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+  localStorage.setItem('ng_theme', next);
+});
+
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
+initTheme();
+renderFavs();
+generate(); // generate on load
+</script>
+</body>
+</html>

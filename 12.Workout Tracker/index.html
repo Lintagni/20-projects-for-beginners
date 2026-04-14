@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Workout Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f1a;
+      --bg2:       #111320;
+      --surface:   #161928;
+      --surface2:  #1e2235;
+      --surface3:  #252a3e;
+      --border:    #2a2f45;
+      --accent:    #f97316;
+      --accent2:   #fb923c;
+      --blue:      #6366f1;
+      --blue2:     #818cf8;
+      --green:     #22c55e;
+      --green-bg:  rgba(34,197,94,0.1);
+      --red:       #ef4444;
+      --red-bg:    rgba(239,68,68,0.1);
+      --yellow:    #fbbf24;
+      --yellow-bg: rgba(251,191,36,0.1);
+      --purple:    #a855f7;
+      --teal:      #14b8a6;
+      --pink:      #ec4899;
+      --text:      #e2e8f0;
+      --text2:     #94a3b8;
+      --text3:     #64748b;
+      --radius:    13px;
+      --shadow:    0 8px 30px rgba(0,0,0,0.4);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 5rem;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .logo { display: flex; align-items: center; gap: 0.65rem; }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 1.15rem;
+    }
+    .logo h1 { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; }
+    .logo h1 span { color: var(--accent); }
+
+    /* ── Layout ── */
+    .container { max-width: 1050px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.82rem; color: var(--text3);
+      text-decoration: none; margin-bottom: 1.75rem;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 4px;
+      width: fit-content;
+      margin-bottom: 1.75rem;
+    }
+    .tab {
+      padding: 0.45rem 1.1rem;
+      border-radius: 8px;
+      font-size: 0.84rem; font-weight: 700;
+      cursor: pointer; border: none;
+      background: transparent; color: var(--text3);
+      transition: all 0.15s; font-family: inherit;
+    }
+    .tab.active { background: var(--accent); color: #fff; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+    }
+    .stat-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text3); margin-bottom: 0.3rem; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+    .stat-sub   { font-size: 0.72rem; color: var(--text3); margin-top: 0.1rem; }
+
+    /* ── Log form ── */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .form-card h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 1.1rem; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label { font-size: 0.74rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.55rem 0.85rem;
+      color: var(--text);
+      font-size: 0.87rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--text3); }
+    select option { background: var(--surface2); }
+
+    .type-pills {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 0.85rem;
+    }
+    .type-pill {
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; border: 2px solid transparent;
+      transition: all 0.15s;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .type-pill.selected { border-color: currentColor; }
+
+    .pill-cardio   { background: rgba(239,68,68,0.12);   color: var(--red); }
+    .pill-strength { background: rgba(249,115,22,0.12);  color: var(--accent); }
+    .pill-yoga     { background: rgba(168,85,247,0.12);  color: var(--purple); }
+    .pill-stretch  { background: rgba(20,184,166,0.12);  color: var(--teal); }
+    .pill-sports   { background: rgba(99,102,241,0.12);  color: var(--blue); }
+    .pill-custom   { background: rgba(251,191,36,0.12);  color: var(--yellow); }
+
+    .form-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+    .btn {
+      padding: 0.55rem 1.1rem;
+      border-radius: 9px;
+      font-size: 0.87rem; font-weight: 700;
+      cursor: pointer; border: none;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      transition: transform 0.12s, opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost   { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-danger  { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-blue    { background: rgba(99,102,241,0.15); color: var(--blue2); border: 1px solid rgba(99,102,241,0.25); }
+    .btn-sm      { padding: 0.28rem 0.65rem; font-size: 0.75rem; }
+
+    .hint { font-size: 0.75rem; color: var(--text3); }
+
+    /* ── Weekly goal bar ── */
+    .goal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 1.25rem;
+      display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
+    }
+    .goal-info { flex: 1; min-width: 200px; }
+    .goal-title { font-size: 0.87rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .goal-track { height: 8px; background: var(--surface2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); margin-bottom: 0.35rem; }
+    .goal-fill  { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 999px; transition: width 0.5s ease; }
+    .goal-label { font-size: 0.75rem; color: var(--text3); }
+    .goal-set   { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+    .goal-set label { font-size: 0.78rem; color: var(--text2); }
+    .goal-set input { width: 65px; text-align: center; }
+
+    /* ── Calorie chart ── */
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .section-title {
+      font-size: 0.9rem; font-weight: 700;
+      margin-bottom: 1.1rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+
+    .chart-bars {
+      display: flex; gap: 4px; align-items: flex-end;
+      height: 100px; overflow-x: auto; padding-bottom: 4px;
+    }
+    .chart-col {
+      min-width: 36px; flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+    .chart-val { font-size: 0.6rem; color: var(--text3); font-weight: 600; }
+    .chart-bar {
+      width: 100%; border-radius: 4px 4px 0 0;
+      transition: height 0.4s ease;
+      min-height: 3px;
+    }
+    .chart-day { font-size: 0.62rem; color: var(--text3); margin-top: 2px; white-space: nowrap; }
+    .chart-day.today { color: var(--accent); font-weight: 800; }
+
+    /* ── Workout list ── */
+    .list-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .list-header {
+      padding: 1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.75rem;
+    }
+
+    .search-wrap { position: relative; }
+    .search-wrap input { padding-left: 2.1rem; width: 210px; }
+    .search-icon { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 0.85rem; pointer-events: none; }
+
+    .workout-item {
+      padding: 1rem 1.4rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 1rem;
+      transition: background 0.12s;
+    }
+    .workout-item:last-child { border-bottom: none; }
+    .workout-item:hover { background: var(--surface2); }
+
+    .workout-type-badge {
+      width: 42px; height: 42px;
+      border-radius: 11px;
+      display: grid; place-items: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .badge-cardio   { background: rgba(239,68,68,0.12); }
+    .badge-strength { background: rgba(249,115,22,0.12); }
+    .badge-yoga     { background: rgba(168,85,247,0.12); }
+    .badge-stretch  { background: rgba(20,184,166,0.12); }
+    .badge-sports   { background: rgba(99,102,241,0.12); }
+    .badge-custom   { background: rgba(251,191,36,0.12); }
+
+    .workout-info { flex: 1; min-width: 0; }
+    .workout-name { font-weight: 700; font-size: 0.92rem; }
+    .workout-meta { font-size: 0.75rem; color: var(--text3); margin-top: 2px; }
+
+    .workout-stats { display: flex; gap: 1.25rem; flex-shrink: 0; }
+    .wstat { text-align: center; }
+    .wstat-val { font-size: 0.95rem; font-weight: 700; }
+    .wstat-lbl { font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .workout-actions { display: flex; gap: 0.35rem; flex-shrink: 0; }
+
+    /* ── Achievements ── */
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.85rem;
+    }
+    .achievement {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      display: flex; align-items: center; gap: 0.85rem;
+      transition: border-color 0.2s;
+    }
+    .achievement.unlocked { border-color: var(--yellow); }
+    .achievement-icon {
+      width: 46px; height: 46px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 1.4rem;
+      flex-shrink: 0;
+      background: var(--surface2);
+      transition: background 0.2s;
+    }
+    .achievement.unlocked .achievement-icon { background: var(--yellow-bg); }
+    .achievement-name { font-size: 0.85rem; font-weight: 700; }
+    .achievement-desc { font-size: 0.72rem; color: var(--text3); margin-top: 2px; }
+    .achievement-status {
+      font-size: 0.68rem; font-weight: 700;
+      margin-top: 4px;
+      color: var(--text3);
+    }
+    .achievement.unlocked .achievement-status { color: var(--yellow); }
+
+    /* ── Custom exercise modal ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      z-index: 200; display: none;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%; max-width: 420px;
+      padding: 1.75rem; position: relative;
+      animation: up 0.18s ease;
+    }
+    @keyframes up { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--surface2); border: none; color: var(--text3);
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      display: grid; place-items: center; font-size: 0.9rem; transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1.1rem; }
+    .modal .field { margin-bottom: 0.85rem; }
+    .custom-list { max-height: 180px; overflow-y: auto; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .custom-item {
+      background: var(--surface2); border-radius: 8px; padding: 0.5rem 0.8rem;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.82rem;
+    }
+
+    /* ── Confirm ── */
+    .confirm-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px); z-index: 250;
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem; max-width: 320px; width: 100%;
+      text-align: center; animation: up 0.18s ease;
+    }
+    .confirm-box h3 { margin-bottom: 0.5rem; }
+    .confirm-box p  { font-size: 0.85rem; color: var(--text3); margin-bottom: 1.25rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 0.75rem; justify-content: center; }
+
+    /* ── Empty ── */
+    .empty { text-align: center; padding: 3rem 1rem; color: var(--text3); }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty h3 { color: var(--text2); margin-bottom: 0.4rem; }
+    .empty p { font-size: 0.85rem; line-height: 1.6; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.6rem 1.3rem;
+      font-size: 0.83rem; font-weight: 600; color: var(--text);
+      z-index: 300; transition: transform 0.28s ease; white-space: nowrap;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      .workout-stats { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">🏋️</div>
+      <h1>Workout <span>Tracker</span></h1>
+    </div>
+  </div>
+
+  <div class="container">
+    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('log')">📋 Log</button>
+      <button class="tab" onclick="switchTab('history')">📜 History</button>
+      <button class="tab" onclick="switchTab('achievements')">🏆 Achievements</button>
+    </div>
+
+    <!-- ═══ LOG TAB ═══ -->
+    <div id="tabLog">
+
+      <!-- Stats -->
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <!-- Weekly goal -->
+      <div class="goal-card">
+        <div class="goal-info">
+          <div class="goal-title">Weekly Workout Goal</div>
+          <div class="goal-track"><div class="goal-fill" id="goalFill" style="width:0%"></div></div>
+          <div class="goal-label" id="goalLabel"></div>
+        </div>
+        <div class="goal-set">
+          <label>Goal:</label>
+          <input type="number" id="goalInput" min="1" max="14" value="5" onchange="updateGoal()" />
+          <span style="font-size:0.78rem;color:var(--text2)">days/week</span>
+        </div>
+      </div>
+
+      <!-- Calorie chart -->
+      <div class="chart-card">
+        <div class="section-title">🔥 Calories Burned — Last 14 Days</div>
+        <div class="chart-bars" id="chartBars"></div>
+      </div>
+
+      <!-- Log form -->
+      <div class="form-card">
+        <h2>➕ Log Workout</h2>
+
+        <div class="type-pills" id="typePills"></div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label>Exercise</label>
+            <select id="exerciseSelect"></select>
+          </div>
+          <div class="field">
+            <label>Duration (min)</label>
+            <input type="number" id="duration" min="1" max="600" placeholder="e.g. 30" />
+          </div>
+          <div class="field">
+            <label>Calories Burned</label>
+            <input type="number" id="calories" min="0" max="5000" placeholder="e.g. 250" />
+          </div>
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="dateInput" />
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom:0.85rem">
+          <label>Notes (optional)</label>
+          <input type="text" id="notes" placeholder="How did it go?" />
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="logWorkout()">💪 Log Workout</button>
+          <button class="btn btn-blue" onclick="openCustomModal()">⚙ Manage Exercises</button>
+          <span class="hint" id="formHint"></span>
+        </div>
+      </div>
+
+      <!-- Today's workouts -->
+      <div class="list-card">
+        <div class="list-header">
+          <div class="section-title" style="margin:0">Today's Workouts</div>
+          <span id="todayCount" style="font-size:0.78rem;color:var(--text3)"></span>
+        </div>
+        <div id="todayList"></div>
+      </div>
+    </div>
+
+    <!-- ═══ HISTORY TAB ═══ -->
+    <div id="tabHistory" style="display:none">
+      <div class="list-card">
+        <div class="list-header">
+          <div class="section-title" style="margin:0">All Workouts</div>
+          <div style="display:flex;gap:0.65rem;align-items:center;flex-wrap:wrap">
+            <div class="search-wrap">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Search…" oninput="renderHistory()" />
+            </div>
+            <select id="filterType" onchange="renderHistory()" style="width:auto;padding:0.45rem 0.7rem;font-size:0.8rem">
+              <option value="">All types</option>
+              <option value="Cardio">Cardio</option>
+              <option value="Strength">Strength</option>
+              <option value="Yoga">Yoga</option>
+              <option value="Stretching">Stretching</option>
+              <option value="Sports">Sports</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <!-- ═══ ACHIEVEMENTS TAB ═══ -->
+    <div id="tabAchievements" style="display:none">
+      <div class="achievements-grid" id="achievementsGrid"></div>
+    </div>
+  </div>
+
+  <!-- Custom exercises modal -->
+  <div class="overlay" id="customOverlay" onclick="closeCustom(event)">
+    <div class="modal">
+      <button class="modal-close" onclick="closeCustomDirect()">✕</button>
+      <h2>⚙ Manage Custom Exercises</h2>
+      <div class="field">
+        <label>Exercise Name</label>
+        <input type="text" id="customName" placeholder="e.g. Kettlebell Swing" />
+      </div>
+      <div class="field">
+        <label>Type</label>
+        <select id="customType">
+          <option value="Cardio">Cardio</option>
+          <option value="Strength">Strength</option>
+          <option value="Yoga">Yoga</option>
+          <option value="Stretching">Stretching</option>
+          <option value="Sports">Sports</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="addCustomExercise()">Add Exercise</button>
+      <div class="custom-list" id="customList"></div>
+    </div>
+  </div>
+
+  <!-- Confirm delete -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <h3>Delete Workout?</h3>
+      <p id="confirmMsg">This will remove the workout permanently.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-danger" id="confirmOk">Delete</button>
+        <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Storage ───────────────────────────────────────────
+    const KEY_WORKOUTS  = 'workoutLog';
+    const KEY_CUSTOM    = 'workoutCustomEx';
+    const KEY_GOAL      = 'workoutWeeklyGoal';
+
+    function getWorkouts()  { return JSON.parse(localStorage.getItem(KEY_WORKOUTS)  || '[]'); }
+    function getCustomEx()  { return JSON.parse(localStorage.getItem(KEY_CUSTOM)    || '[]'); }
+    function saveWorkouts(w){ localStorage.setItem(KEY_WORKOUTS,  JSON.stringify(w)); }
+    function saveCustomEx(c){ localStorage.setItem(KEY_CUSTOM,    JSON.stringify(c)); }
+
+    let weeklyGoal  = parseInt(localStorage.getItem(KEY_GOAL) || '5');
+    let currentTab  = 'log';
+    let selectedType = 'Cardio';
+    let deletingId   = null;
+
+    // ── Preset exercises ──────────────────────────────────
+    const PRESETS = {
+      Cardio:     ['Running','Cycling','Jump Rope','Swimming','HIIT','Walking','Rowing','Elliptical'],
+      Strength:   ['Bench Press','Squats','Deadlift','Pull-ups','Push-ups','Shoulder Press','Lunges','Plank'],
+      Yoga:       ['Vinyasa Flow','Hatha Yoga','Yin Yoga','Power Yoga','Restorative Yoga'],
+      Stretching: ['Full Body Stretch','Hip Flexor Stretch','Hamstring Stretch','Foam Rolling','Mobility Work'],
+      Sports:     ['Basketball','Football','Tennis','Soccer','Volleyball','Boxing','Martial Arts','Badminton'],
+      Custom:     [],
+    };
+
+    const TYPE_META = {
+      Cardio:     { icon:'🏃', color:'var(--red)',    cls:'cardio'   },
+      Strength:   { icon:'🏋️', color:'var(--accent)', cls:'strength' },
+      Yoga:       { icon:'🧘', color:'var(--purple)', cls:'yoga'     },
+      Stretching: { icon:'🤸', color:'var(--teal)',   cls:'stretch'  },
+      Sports:     { icon:'⚽', color:'var(--blue)',   cls:'sports'   },
+      Custom:     { icon:'⚡', color:'var(--yellow)', cls:'custom'   },
+    };
+
+    // ── Init ──────────────────────────────────────────────
+    document.getElementById('dateInput').value = todayStr();
+    document.getElementById('goalInput').value = weeklyGoal;
+    buildTypePills();
+    buildExerciseSelect();
+    renderAll();
+
+    // ── Type pills ────────────────────────────────────────
+    function buildTypePills() {
+      document.getElementById('typePills').innerHTML = Object.keys(TYPE_META).map(t => {
+        const m = TYPE_META[t];
+        return `<div class="type-pill pill-${m.cls}${t===selectedType?' selected':''}"
+                     onclick="selectType('${t}')">${m.icon} ${t}</div>`;
+      }).join('');
+    }
+
+    function selectType(t) {
+      selectedType = t;
+      buildTypePills();
+      buildExerciseSelect();
+    }
+
+    // ── Exercise select ───────────────────────────────────
+    function buildExerciseSelect() {
+      const customEx = getCustomEx().filter(e => e.type === selectedType).map(e => e.name);
+      const list = [...PRESETS[selectedType], ...customEx];
+      const sel  = document.getElementById('exerciseSelect');
+      sel.innerHTML = list.map(e => `<option value="${escHtml(e)}">${escHtml(e)}</option>`).join('');
+    }
+
+    // ── Log workout ───────────────────────────────────────
+    function logWorkout() {
+      const exercise = document.getElementById('exerciseSelect').value;
+      const duration = parseInt(document.getElementById('duration').value);
+      const calories = parseInt(document.getElementById('calories').value);
+      const date     = document.getElementById('dateInput').value;
+      const notes    = document.getElementById('notes').value.trim();
+      const hint     = document.getElementById('formHint');
+
+      if (!exercise)         { hint.textContent = '⚠ Select an exercise'; return; }
+      if (!duration || duration < 1) { hint.textContent = '⚠ Enter duration'; return; }
+      if (!date)             { hint.textContent = '⚠ Select a date'; return; }
+
+      hint.textContent = '';
+
+      const workout = {
+        id:       Date.now().toString(),
+        type:     selectedType,
+        exercise,
+        duration,
+        calories: isNaN(calories) ? 0 : calories,
+        date,
+        notes,
+        createdAt: new Date().toISOString(),
+      };
+
+      const workouts = getWorkouts();
+      workouts.unshift(workout);
+      saveWorkouts(workouts);
+
+      // Reset form
+      document.getElementById('duration').value = '';
+      document.getElementById('calories').value = '';
+      document.getElementById('notes').value    = '';
+      document.getElementById('dateInput').value = todayStr();
+
+      checkAchievements(workouts);
+      renderAll();
+      showToast(`💪 ${exercise} logged!`);
+    }
+
+    // ── Delete ────────────────────────────────────────────
+    function confirmDelete(id, name) {
+      deletingId = id;
+      document.getElementById('confirmMsg').textContent = `Delete "${name}"? This cannot be undone.`;
+      document.getElementById('confirmOverlay').classList.add('open');
+      document.getElementById('confirmOk').onclick = doDelete;
+    }
+
+    function doDelete() {
+      const workouts = getWorkouts().filter(w => w.id !== deletingId);
+      saveWorkouts(workouts);
+      closeConfirm();
+      renderAll();
+      showToast('Workout deleted');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmOverlay').classList.remove('open');
+      deletingId = null;
+    }
+
+    // ── Weekly goal ───────────────────────────────────────
+    function updateGoal() {
+      const v = parseInt(document.getElementById('goalInput').value);
+      if (isNaN(v) || v < 1) return;
+      weeklyGoal = Math.min(v, 14);
+      document.getElementById('goalInput').value = weeklyGoal;
+      localStorage.setItem(KEY_GOAL, weeklyGoal);
+      renderGoal();
+    }
+
+    function renderGoal() {
+      const workouts  = getWorkouts();
+      const weekDays  = getThisWeekDays();
+      const workedOut = new Set(workouts.filter(w => weekDays.includes(w.date)).map(w => w.date)).size;
+      const pct       = Math.min(Math.round((workedOut / weeklyGoal) * 100), 100);
+      document.getElementById('goalFill').style.width  = pct + '%';
+      document.getElementById('goalLabel').textContent = `${workedOut} of ${weeklyGoal} days this week (${pct}%)`;
+    }
+
+    function getThisWeekDays() {
+      const days = [];
+      const today = new Date();
+      const dow   = today.getDay();
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - dow + i);
+        days.push(d.toISOString().slice(0, 10));
+      }
+      return days;
+    }
+
+    // ── Stats ─────────────────────────────────────────────
+    function renderStats() {
+      const workouts  = getWorkouts();
+      const today     = todayStr();
+      const todayW    = workouts.filter(w => w.date === today);
+      const totalCal  = workouts.reduce((s,w) => s + w.calories, 0);
+      const totalMin  = workouts.reduce((s,w) => s + w.duration, 0);
+      const streak    = calcStreak(workouts);
+      const weekW     = workouts.filter(w => getThisWeekDays().includes(w.date));
+      const weekCal   = weekW.reduce((s,w) => s + w.calories, 0);
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-label">Today</div>
+          <div class="stat-value" style="color:var(--accent)">${todayW.length}</div>
+          <div class="stat-sub">${todayW.reduce((s,w)=>s+w.calories,0)} cal · ${todayW.reduce((s,w)=>s+w.duration,0)} min</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-label">Week Calories</div>
+          <div class="stat-value" style="color:var(--red)">${weekCal.toLocaleString()}</div>
+          <div class="stat-sub">${weekW.length} sessions this week</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-label">Streak</div>
+          <div class="stat-value" style="color:var(--yellow)">${streak}</div>
+          <div class="stat-sub">consecutive days</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⏱</div>
+          <div class="stat-label">Total Time</div>
+          <div class="stat-value">${Math.floor(totalMin/60)}<span style="font-size:1rem">h</span>${totalMin%60}<span style="font-size:1rem">m</span></div>
+          <div class="stat-sub">${totalCal.toLocaleString()} total calories</div>
+        </div>
+      `;
+    }
+
+    function calcStreak(workouts) {
+      const days = [...new Set(workouts.map(w => w.date))].sort((a,b) => b.localeCompare(a));
+      if (!days.length) return 0;
+      let streak = 0;
+      const cur  = new Date();
+      for (let i = 0; ; i++) {
+        const d = new Date(cur); d.setDate(d.getDate() - i);
+        const k = d.toISOString().slice(0, 10);
+        if (days.includes(k)) streak++;
+        else if (i > 0) break;
+        if (i > 365) break;
+      }
+      return streak;
+    }
+
+    // ── Chart ─────────────────────────────────────────────
+    function renderChart() {
+      const workouts = getWorkouts();
+      const days     = [];
+      const today    = new Date();
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0, 10);
+        const cal = workouts.filter(w => w.date === key).reduce((s,w) => s + w.calories, 0);
+        days.push({ key, cal, isToday: i === 0, label: d.toLocaleDateString('en-US',{month:'short',day:'numeric'}) });
+      }
+
+      const maxCal = Math.max(...days.map(d => d.cal), 1);
+      const maxH   = 72;
+
+      document.getElementById('chartBars').innerHTML = days.map(d => {
+        const h   = Math.max(d.cal ? Math.round((d.cal / maxCal) * maxH) : 0, d.cal ? 4 : 2);
+        const col = d.cal >= 500 ? 'var(--green)' : d.cal >= 200 ? 'var(--accent)' : d.cal > 0 ? 'var(--blue2)' : 'var(--border)';
+        return `
+          <div class="chart-col">
+            <div class="chart-val">${d.cal || ''}</div>
+            <div class="chart-bar" style="height:${h}px;background:${col}"></div>
+            <div class="chart-day${d.isToday?' today':''}">${d.isToday?'Today':d.label.split(' ')[1]}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Today list ────────────────────────────────────────
+    function renderTodayList() {
+      const workouts = getWorkouts().filter(w => w.date === todayStr());
+      const el = document.getElementById('todayList');
+      document.getElementById('todayCount').textContent =
+        workouts.length ? `${workouts.length} workout${workouts.length!==1?'s':''}` : '';
+
+      if (!workouts.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">🛋️</div><h3>No workouts today</h3><p>Log your first workout above!</p></div>`;
+        return;
+      }
+      el.innerHTML = workouts.map(w => workoutRowHTML(w)).join('');
+    }
+
+    function renderHistory() {
+      const q    = (document.getElementById('searchInput')?.value || '').toLowerCase();
+      const type = document.getElementById('filterType')?.value || '';
+      let workouts = getWorkouts();
+      if (q)    workouts = workouts.filter(w => w.exercise.toLowerCase().includes(q) || (w.notes||'').toLowerCase().includes(q));
+      if (type) workouts = workouts.filter(w => w.type === type);
+
+      const el = document.getElementById('historyList');
+      if (!workouts.length) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><h3>No workouts found</h3><p>Try a different search or log your first workout.</p></div>`;
+        return;
+      }
+
+      // Group by date
+      const grouped = {};
+      workouts.forEach(w => { (grouped[w.date] = grouped[w.date] || []).push(w); });
+      const sorted = Object.keys(grouped).sort((a,b) => b.localeCompare(a));
+
+      el.innerHTML = sorted.map(date => `
+        <div style="padding:0.6rem 1.4rem;background:var(--surface2);border-bottom:1px solid var(--border);font-size:0.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em">
+          ${fmtDate(date)}
+          <span style="color:var(--text3);font-weight:400;margin-left:0.5rem">
+            · ${grouped[date].reduce((s,w)=>s+w.calories,0)} cal · ${grouped[date].reduce((s,w)=>s+w.duration,0)} min
+          </span>
+        </div>
+        ${grouped[date].map(w => workoutRowHTML(w)).join('')}
+      `).join('');
+    }
+
+    function workoutRowHTML(w) {
+      const m = TYPE_META[w.type] || TYPE_META.Custom;
+      return `
+        <div class="workout-item">
+          <div class="workout-type-badge badge-${m.cls}">${m.icon}</div>
+          <div class="workout-info">
+            <div class="workout-name">${escHtml(w.exercise)}</div>
+            <div class="workout-meta">${w.type}${w.notes ? ' · ' + escHtml(w.notes) : ''}</div>
+          </div>
+          <div class="workout-stats">
+            <div class="wstat">
+              <div class="wstat-val" style="color:var(--accent)">${w.duration}</div>
+              <div class="wstat-lbl">min</div>
+            </div>
+            <div class="wstat">
+              <div class="wstat-val" style="color:var(--red)">${w.calories}</div>
+              <div class="wstat-lbl">cal</div>
+            </div>
+          </div>
+          <div class="workout-actions">
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete('${w.id}','${escAttr(w.exercise)}')">🗑</button>
+          </div>
+        </div>`;
+    }
+
+    // ── Achievements ──────────────────────────────────────
+    const ACHIEVEMENTS_DEF = [
+      { id:'first',       icon:'🌟', name:'First Step',       desc:'Log your first workout',              check: w => w.length >= 1 },
+      { id:'cal100',      icon:'🔥', name:'Calorie Burner',   desc:'Burn 100+ calories in one session',   check: w => w.some(x => x.calories >= 100) },
+      { id:'cal500',      icon:'💥', name:'Inferno',          desc:'Burn 500+ calories in one session',   check: w => w.some(x => x.calories >= 500) },
+      { id:'streak3',     icon:'⚡', name:'On a Roll',        desc:'3-day workout streak',                check: w => calcStreak(w) >= 3 },
+      { id:'streak7',     icon:'🏅', name:'Week Warrior',     desc:'7-day workout streak',                check: w => calcStreak(w) >= 7 },
+      { id:'streak30',    icon:'🏆', name:'30-Day Champion',  desc:'30-day workout streak',               check: w => calcStreak(w) >= 30 },
+      { id:'total10',     icon:'💪', name:'Getting Started',  desc:'Log 10 total workouts',               check: w => w.length >= 10 },
+      { id:'total50',     icon:'🦾', name:'Dedicated',        desc:'Log 50 total workouts',               check: w => w.length >= 50 },
+      { id:'total100',    icon:'🎖', name:'Century Club',     desc:'Log 100 total workouts',              check: w => w.length >= 100 },
+      { id:'types5',      icon:'🎭', name:'All-Rounder',      desc:'Try all 5 exercise types',            check: w => new Set(w.map(x=>x.type)).size >= 5 },
+      { id:'min60',       icon:'⏱', name:'Hour of Power',    desc:'Log a 60+ minute session',            check: w => w.some(x => x.duration >= 60) },
+      { id:'totalcal10k', icon:'🌋', name:'10K Calories',     desc:'Burn 10,000 total calories',          check: w => w.reduce((s,x)=>s+x.calories,0) >= 10000 },
+    ];
+
+    const KEY_ACH = 'workoutAchievements';
+    function getUnlocked() { return JSON.parse(localStorage.getItem(KEY_ACH) || '[]'); }
+
+    function checkAchievements(workouts) {
+      const unlocked = getUnlocked();
+      let newUnlock  = false;
+      ACHIEVEMENTS_DEF.forEach(a => {
+        if (!unlocked.includes(a.id) && a.check(workouts)) {
+          unlocked.push(a.id);
+          newUnlock = true;
+          setTimeout(() => showToast(`🏆 Achievement unlocked: ${a.name}!`), 500);
+        }
+      });
+      if (newUnlock) localStorage.setItem(KEY_ACH, JSON.stringify(unlocked));
+    }
+
+    function renderAchievements() {
+      const unlocked = getUnlocked();
+      document.getElementById('achievementsGrid').innerHTML = ACHIEVEMENTS_DEF.map(a => {
+        const done = unlocked.includes(a.id);
+        return `
+          <div class="achievement${done?' unlocked':''}">
+            <div class="achievement-icon">${a.icon}</div>
+            <div>
+              <div class="achievement-name">${a.name}</div>
+              <div class="achievement-desc">${a.desc}</div>
+              <div class="achievement-status">${done ? '✓ Unlocked' : '🔒 Locked'}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Custom exercises modal ────────────────────────────
+    function openCustomModal() {
+      renderCustomList();
+      document.getElementById('customOverlay').classList.add('open');
+    }
+    function closeCustom(e) { if(e.target===document.getElementById('customOverlay')) closeCustomDirect(); }
+    function closeCustomDirect() { document.getElementById('customOverlay').classList.remove('open'); }
+
+    function addCustomExercise() {
+      const name = document.getElementById('customName').value.trim();
+      const type = document.getElementById('customType').value;
+      if (!name) { showToast('⚠ Enter an exercise name'); return; }
+      const customs = getCustomEx();
+      if (customs.some(e => e.name.toLowerCase() === name.toLowerCase())) {
+        showToast('Exercise already exists'); return;
+      }
+      customs.push({ name, type });
+      saveCustomEx(customs);
+      document.getElementById('customName').value = '';
+      renderCustomList();
+      buildExerciseSelect();
+      showToast(`Added: ${name}`);
+    }
+
+    function deleteCustom(name) {
+      const customs = getCustomEx().filter(e => e.name !== name);
+      saveCustomEx(customs);
+      renderCustomList();
+      buildExerciseSelect();
+      showToast('Exercise removed');
+    }
+
+    function renderCustomList() {
+      const customs = getCustomEx();
+      const el = document.getElementById('customList');
+      if (!customs.length) { el.innerHTML = `<p style="font-size:0.78rem;color:var(--text3);text-align:center;padding:0.5rem">No custom exercises yet.</p>`; return; }
+      el.innerHTML = customs.map(e => `
+        <div class="custom-item">
+          <span>${escHtml(e.name)} <span style="color:var(--text3);font-size:0.7rem">(${e.type})</span></span>
+          <button class="btn btn-danger btn-sm" onclick="deleteCustom('${escAttr(e.name)}')">✕</button>
+        </div>`).join('');
+    }
+
+    // ── Tabs ──────────────────────────────────────────────
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabLog').style.display         = tab==='log'          ? '' : 'none';
+      document.getElementById('tabHistory').style.display     = tab==='history'      ? '' : 'none';
+      document.getElementById('tabAchievements').style.display= tab==='achievements' ? '' : 'none';
+      document.querySelectorAll('.tab').forEach((el,i) => {
+        el.classList.toggle('active', ['log','history','achievements'][i] === tab);
+      });
+      if (tab === 'history')      renderHistory();
+      if (tab === 'achievements') renderAchievements();
+    }
+
+    // ── Render all ────────────────────────────────────────
+    function renderAll() {
+      renderStats();
+      renderGoal();
+      renderChart();
+      renderTodayList();
+      if (currentTab === 'history')      renderHistory();
+      if (currentTab === 'achievements') renderAchievements();
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+    function fmtDate(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      const today = todayStr();
+      const yest  = new Date(); yest.setDate(yest.getDate()-1);
+      const yestStr = yest.toISOString().slice(0,10);
+      if (iso === today)    return 'Today';
+      if (iso === yestStr)  return 'Yesterday';
+      return d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function escAttr(s) { return String(s).replace(/'/g,"\\'"); }
+
+    // ── Toast ─────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeCustomDirect(); closeConfirm(); }
+    });
+  </script>
+</body>
+</html>

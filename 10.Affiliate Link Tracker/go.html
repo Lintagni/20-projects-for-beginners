@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Redirecting...</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0b0e1a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 1rem;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #252a40;
+      border-top-color: #7c6ff7;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    p { color: #64748b; font-size: 0.9rem; }
+    a { color: #a78bfa; }
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <p id="msg">Tracking click & redirecting...</p>
+
+  <script>
+    const params  = new URLSearchParams(location.search);
+    const code    = params.get('code');
+    const STORE   = 'affiliateLinks';
+
+    function getLinks() {
+      return JSON.parse(localStorage.getItem(STORE) || '[]');
+    }
+    function saveLinks(links) {
+      localStorage.setItem(STORE, JSON.stringify(links));
+    }
+
+    if (!code) {
+      document.getElementById('msg').innerHTML = 'No code provided. <a href="index.html">Go back</a>';
+    } else {
+      const links = getLinks();
+      const idx   = links.findIndex(l => l.code === code);
+
+      if (idx === -1) {
+        document.getElementById('msg').innerHTML = 'Link not found. <a href="index.html">Go back</a>';
+      } else {
+        // Record click
+        const now = new Date().toISOString();
+        links[idx].clicks += 1;
+        links[idx].clickLog = links[idx].clickLog || [];
+        links[idx].clickLog.push(now);
+        saveLinks(links);
+
+        const dest = links[idx].url;
+        document.getElementById('msg').textContent = `Redirecting to ${dest} …`;
+
+        setTimeout(() => { window.location.href = dest; }, 600);
+      }
+    }
+  </script>
+</body>
+</html>

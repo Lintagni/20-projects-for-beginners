@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Affiliate Link Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0b0e1a;
+      --surface:   #131726;
+      --surface2:  #1c2033;
+      --surface3:  #232740;
+      --border:    #252a40;
+      --accent:    #7c6ff7;
+      --accent2:   #a78bfa;
+      --green:     #22c55e;
+      --green-bg:  rgba(34,197,94,0.1);
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 5rem;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .logo { display: flex; align-items: center; gap: 0.6rem; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 1rem;
+    }
+    .logo h1 { font-size: 1rem; font-weight: 700; }
+    .logo h1 span { color: var(--accent2); }
+
+    /* ── Layout ── */
+    .container { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.82rem; color: var(--muted);
+      text-decoration: none; margin-bottom: 1.75rem;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    /* ── Analytics strip ── */
+    .analytics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .analytics-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.3rem;
+    }
+    .analytics-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .analytics-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .analytics-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; }
+
+    /* ── Add link panel ── */
+    .add-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .add-panel h2 {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label { font-size: 0.75rem; color: var(--muted); font-weight: 600; }
+
+    input[type="text"], input[type="url"], select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.85rem;
+      color: var(--text);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    .add-actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: opacity 0.15s, transform 0.12s;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: none; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-danger { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+    .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+
+    .hint { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-left { display: flex; align-items: center; gap: 0.5rem; }
+
+    .search-wrap {
+      position: relative;
+    }
+    .search-wrap input {
+      padding-left: 2rem;
+      width: 220px;
+    }
+    .search-icon {
+      position: absolute;
+      left: 0.65rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.85rem;
+      pointer-events: none;
+    }
+
+    select.sort-select {
+      width: auto;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      padding: 0.75rem 1rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+
+    td {
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .link-title { font-weight: 600; color: var(--text); }
+    .link-url {
+      font-size: 0.75rem;
+      color: var(--muted);
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .short-link {
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: var(--accent2);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .clicks-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .rank-1 { color: #f59e0b; }
+    .rank-2 { color: #94a3b8; }
+    .rank-3 { color: #b45309; }
+
+    .perf-bar-wrap {
+      width: 80px;
+      height: 5px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 3px;
+    }
+    .perf-bar {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.4s ease;
+    }
+
+    .date-cell { font-size: 0.78rem; color: var(--muted); }
+
+    .actions-cell { display: flex; gap: 0.4rem; align-items: center; }
+
+    /* ── Empty ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+    .empty-state .ei { font-size: 3rem; margin-bottom: 0.75rem; }
+    .empty-state h3 { color: var(--text); margin-bottom: 0.4rem; }
+    .empty-state p { font-size: 0.87rem; line-height: 1.6; }
+
+    /* ── Modal (edit + detail) ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      padding: 1.75rem;
+      position: relative;
+      animation: up 0.18s ease;
+    }
+    @keyframes up { from { opacity:0; transform: translateY(16px); } to { opacity:1; transform:none; } }
+
+    .modal-close {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--surface2); border: none;
+      color: var(--muted); width: 28px; height: 28px;
+      border-radius: 50%; cursor: pointer; font-size: 0.9rem;
+      display: grid; place-items: center; transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; }
+
+    .modal .field { margin-bottom: 1rem; }
+
+    /* click timeline */
+    .timeline {
+      max-height: 220px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .timeline-item {
+      background: var(--surface2);
+      border-radius: 7px;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .timeline-item .dot { width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.55rem 1.2rem;
+      font-size: 0.82rem; font-weight: 600; color: var(--text);
+      z-index: 300; transition: transform 0.28s ease; white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Confirm dialog ── */
+    .confirm-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+      z-index: 250;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+      animation: up 0.18s ease;
+    }
+    .confirm-box h3 { margin-bottom: 0.5rem; font-size: 1rem; }
+    .confirm-box p { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 0.75rem; justify-content: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">🔗</div>
+      <h1>Affiliate <span>Tracker</span></h1>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+
+    <!-- Analytics -->
+    <div class="analytics" id="analytics"></div>
+
+    <!-- Add link -->
+    <div class="add-panel">
+      <h2>➕ Add New Affiliate Link</h2>
+      <div class="form-row">
+        <div class="field">
+          <label>Link Title</label>
+          <input type="text" id="inTitle" placeholder="e.g. Amazon Homepage" />
+        </div>
+        <div class="field">
+          <label>Category (optional)</label>
+          <input type="text" id="inCategory" placeholder="e.g. Amazon, ClickBank…" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field" style="grid-column:1/-1">
+          <label>Destination URL</label>
+          <input type="url" id="inUrl" placeholder="https://example.com/your-affiliate-link" />
+        </div>
+      </div>
+      <div class="add-actions">
+        <button class="btn btn-primary" onclick="addLink()">Generate Short Link</button>
+        <span class="hint" id="addHint"></span>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search links…" oninput="renderTable()" />
+        </div>
+        <select class="sort-select" id="sortSelect" onchange="renderTable()">
+          <option value="date-desc">Newest first</option>
+          <option value="date-asc">Oldest first</option>
+          <option value="clicks-desc">Most clicks</option>
+          <option value="clicks-asc">Least clicks</option>
+          <option value="title-asc">Title A–Z</option>
+        </select>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="clearAll()">🗑 Clear all</button>
+    </div>
+
+    <!-- Table -->
+    <div id="tableArea"></div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="overlay" id="editOverlay" onclick="closeEdit(event)">
+    <div class="modal" id="editModal">
+      <button class="modal-close" onclick="closeEditDirect()">✕</button>
+      <h2>✏️ Edit Link</h2>
+      <div class="field">
+        <label>Title</label>
+        <input type="text" id="editTitle" />
+      </div>
+      <div class="field">
+        <label>Category</label>
+        <input type="text" id="editCategory" />
+      </div>
+      <div class="field">
+        <label>Destination URL</label>
+        <input type="url" id="editUrl" />
+      </div>
+      <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+        <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+        <button class="btn btn-ghost" onclick="closeEditDirect()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="overlay" id="detailOverlay" onclick="closeDetail(event)">
+    <div class="modal" id="detailModal" style="max-width:520px">
+      <button class="modal-close" onclick="closeDetailDirect()">✕</button>
+      <div id="detailContent"></div>
+    </div>
+  </div>
+
+  <!-- Confirm delete -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <h3>Delete Link?</h3>
+      <p id="confirmMsg">This will permanently remove the link and all its click data.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-danger" id="confirmOk">Delete</button>
+        <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Storage ──────────────────────────────────────────
+    const STORE = 'affiliateLinks';
+
+    function getLinks() {
+      return JSON.parse(localStorage.getItem(STORE) || '[]');
+    }
+    function saveLinks(links) {
+      localStorage.setItem(STORE, JSON.stringify(links));
+    }
+
+    // ── Generate short code ───────────────────────────────
+    function genCode() {
+      return Math.random().toString(36).slice(2, 8);
+    }
+
+    function shortUrl(code) {
+      return `${location.origin}${location.pathname.replace('index.html','').replace(/\/$/, '')}/go.html?code=${code}`;
+    }
+
+    // ── Add ───────────────────────────────────────────────
+    function addLink() {
+      const title    = document.getElementById('inTitle').value.trim();
+      const url      = document.getElementById('inUrl').value.trim();
+      const category = document.getElementById('inCategory').value.trim();
+      const hint     = document.getElementById('addHint');
+
+      if (!title) { hint.textContent = '⚠ Please enter a title.'; return; }
+      if (!url)   { hint.textContent = '⚠ Please enter a URL.'; return; }
+
+      let parsed;
+      try { parsed = new URL(url); } catch {
+        hint.textContent = '⚠ Invalid URL — include https://'; return;
+      }
+
+      hint.textContent = '';
+      const links = getLinks();
+      const link = {
+        id:       crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+        code:     genCode(),
+        title,
+        url:      parsed.href,
+        category: category || 'General',
+        clicks:   0,
+        clickLog: [],
+        created:  new Date().toISOString()
+      };
+
+      links.unshift(link);
+      saveLinks(links);
+
+      document.getElementById('inTitle').value    = '';
+      document.getElementById('inUrl').value      = '';
+      document.getElementById('inCategory').value = '';
+
+      renderAll();
+      showToast('Link created ✓');
+    }
+
+    // ── Analytics ──────────────────────────────────────────
+    function renderAnalytics() {
+      const links = getLinks();
+      const total = links.reduce((s, l) => s + l.clicks, 0);
+      const avg   = links.length ? (total / links.length).toFixed(1) : 0;
+      const best  = links.reduce((b, l) => l.clicks > (b?.clicks || -1) ? l : b, null);
+      const today = links.reduce((s, l) => {
+        const todayStr = new Date().toDateString();
+        return s + (l.clickLog || []).filter(d => new Date(d).toDateString() === todayStr).length;
+      }, 0);
+
+      document.getElementById('analytics').innerHTML = `
+        <div class="analytics-card">
+          <div class="analytics-label">Total Links</div>
+          <div class="analytics-value">${links.length}</div>
+          <div class="analytics-sub">across all campaigns</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Total Clicks</div>
+          <div class="analytics-value">${total.toLocaleString()}</div>
+          <div class="analytics-sub">${today} today</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Avg Clicks / Link</div>
+          <div class="analytics-value">${avg}</div>
+          <div class="analytics-sub">per affiliate link</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Best Performer</div>
+          <div class="analytics-value" style="font-size:1.1rem;line-height:1.3">${best ? best.title : '—'}</div>
+          <div class="analytics-sub">${best ? best.clicks + ' clicks' : 'no data yet'}</div>
+        </div>
+      `;
+    }
+
+    // ── Table ──────────────────────────────────────────────
+    function renderTable() {
+      const container = document.getElementById('tableArea');
+      let links = getLinks();
+
+      // Filter
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      if (q) links = links.filter(l =>
+        l.title.toLowerCase().includes(q) ||
+        l.url.toLowerCase().includes(q) ||
+        (l.category || '').toLowerCase().includes(q)
+      );
+
+      // Sort
+      const sort = document.getElementById('sortSelect').value;
+      links.sort((a, b) => {
+        if (sort === 'date-desc') return new Date(b.created) - new Date(a.created);
+        if (sort === 'date-asc')  return new Date(a.created) - new Date(b.created);
+        if (sort === 'clicks-desc') return b.clicks - a.clicks;
+        if (sort === 'clicks-asc')  return a.clicks - b.clicks;
+        if (sort === 'title-asc')   return a.title.localeCompare(b.title);
+        return 0;
+      });
+
+      if (links.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="ei">🔗</div>
+            <h3>No affiliate links yet</h3>
+            <p>Paste a URL above and generate your first short link.</p>
+          </div>`;
+        return;
+      }
+
+      const maxClicks = Math.max(...links.map(l => l.clicks), 1);
+      const allSorted = getLinks().sort((a,b) => b.clicks - a.clicks);
+
+      container.innerHTML = `
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Link</th>
+                <th>Short URL</th>
+                <th>Clicks</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${links.map((l, i) => {
+                const rank   = allSorted.findIndex(x => x.id === l.id) + 1;
+                const rankCls = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : '';
+                const medal   = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                const pct     = Math.round((l.clicks / maxClicks) * 100);
+                const short   = shortUrl(l.code);
+                return `
+                  <tr>
+                    <td style="color:var(--muted);font-size:0.78rem">${i+1}</td>
+                    <td>
+                      <div class="link-title">${medal} ${escHtml(l.title)}</div>
+                      <div class="link-url" title="${escHtml(l.url)}">${escHtml(l.url)}</div>
+                      ${l.category ? `<span style="font-size:0.7rem;color:var(--muted);background:var(--surface3);padding:0.1rem 0.4rem;border-radius:4px">${escHtml(l.category)}</span>` : ''}
+                    </td>
+                    <td>
+                      <div class="short-link" title="${short}">${short}</div>
+                      <button class="btn btn-ghost btn-sm" style="margin-top:4px" onclick="copyLink('${short}')">📋 Copy</button>
+                    </td>
+                    <td>
+                      <div class="clicks-badge ${rankCls}">${l.clicks.toLocaleString()}</div>
+                      <div class="perf-bar-wrap"><div class="perf-bar" style="width:${pct}%"></div></div>
+                    </td>
+                    <td class="date-cell">${fmtDate(l.created)}</td>
+                    <td>
+                      <div class="actions-cell">
+                        <button class="btn btn-ghost btn-sm" onclick="openDetail('${l.id}')" title="View details">📊</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openEdit('${l.id}')" title="Edit">✏️</button>
+                        <button class="btn btn-danger btn-sm" onclick="confirmDelete('${l.id}','${escAttr(l.title)}')" title="Delete">🗑</button>
+                      </div>
+                    </td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderAll() {
+      renderAnalytics();
+      renderTable();
+    }
+
+    // ── Detail modal ───────────────────────────────────────
+    function openDetail(id) {
+      const link = getLinks().find(l => l.id === id);
+      if (!link) return;
+
+      const log = (link.clickLog || []).slice().reverse();
+
+      // Clicks per day (last 7 days)
+      const dayMap = {};
+      const today  = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        dayMap[d.toDateString()] = 0;
+      }
+      log.forEach(ts => {
+        const k = new Date(ts).toDateString();
+        if (k in dayMap) dayMap[k]++;
+      });
+
+      const maxDay = Math.max(...Object.values(dayMap), 1);
+
+      document.getElementById('detailContent').innerHTML = `
+        <h2 style="margin-bottom:0.25rem">${escHtml(link.title)}</h2>
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:1.25rem">${escHtml(link.url)}</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1.5rem">
+          <div class="analytics-card" style="padding:0.85rem">
+            <div class="analytics-label">Total Clicks</div>
+            <div class="analytics-value" style="font-size:1.5rem">${link.clicks}</div>
+          </div>
+          <div class="analytics-card" style="padding:0.85rem">
+            <div class="analytics-label">Category</div>
+            <div class="analytics-value" style="font-size:1rem;line-height:1.3">${escHtml(link.category || 'General')}</div>
+          </div>
+          <div class="analytics-card" style="padding:0.85rem">
+            <div class="analytics-label">Created</div>
+            <div class="analytics-value" style="font-size:0.95rem;line-height:1.3">${fmtDate(link.created)}</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <div class="analytics-label" style="margin-bottom:0.75rem">Clicks — last 7 days</div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:60px">
+            ${Object.entries(dayMap).map(([day, cnt]) => `
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+                <div style="font-size:0.65rem;color:var(--muted)">${cnt || ''}</div>
+                <div style="width:100%;background:${cnt>0?'var(--accent)':'var(--border)'};border-radius:3px 3px 0 0;height:${Math.max(4,Math.round((cnt/maxDay)*48))}px;transition:height 0.4s ease"></div>
+                <div style="font-size:0.6rem;color:var(--muted);white-space:nowrap">${new Date(day).toLocaleDateString('en',{weekday:'short'})}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="analytics-label" style="margin-bottom:0.5rem">Click History (most recent)</div>
+        ${log.length === 0
+          ? `<p style="font-size:0.82rem;color:var(--muted)">No clicks recorded yet.</p>`
+          : `<div class="timeline">${log.slice(0,50).map(ts => `
+              <div class="timeline-item">
+                <div class="dot"></div>
+                ${new Date(ts).toLocaleString()}
+              </div>`).join('')}
+             </div>`}
+      `;
+      document.getElementById('detailOverlay').classList.add('open');
+    }
+
+    function closeDetail(e) { if (e.target === document.getElementById('detailOverlay')) closeDetailDirect(); }
+    function closeDetailDirect() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+    // ── Edit modal ─────────────────────────────────────────
+    let editingId = null;
+
+    function openEdit(id) {
+      const link = getLinks().find(l => l.id === id);
+      if (!link) return;
+      editingId = id;
+      document.getElementById('editTitle').value    = link.title;
+      document.getElementById('editCategory').value = link.category || '';
+      document.getElementById('editUrl').value      = link.url;
+      document.getElementById('editOverlay').classList.add('open');
+    }
+
+    function saveEdit() {
+      const title    = document.getElementById('editTitle').value.trim();
+      const category = document.getElementById('editCategory').value.trim();
+      const url      = document.getElementById('editUrl').value.trim();
+      if (!title || !url) return;
+
+      let parsed;
+      try { parsed = new URL(url); } catch { showToast('⚠ Invalid URL'); return; }
+
+      const links = getLinks();
+      const idx   = links.findIndex(l => l.id === editingId);
+      if (idx === -1) return;
+      links[idx].title    = title;
+      links[idx].category = category;
+      links[idx].url      = parsed.href;
+      saveLinks(links);
+      closeEditDirect();
+      renderAll();
+      showToast('Link updated ✓');
+    }
+
+    function closeEdit(e) { if (e.target === document.getElementById('editOverlay')) closeEditDirect(); }
+    function closeEditDirect() { document.getElementById('editOverlay').classList.remove('open'); editingId = null; }
+
+    // ── Delete ─────────────────────────────────────────────
+    let deletingId = null;
+
+    function confirmDelete(id, title) {
+      deletingId = id;
+      document.getElementById('confirmMsg').textContent = `Delete "${title}"? This removes all click data permanently.`;
+      document.getElementById('confirmOverlay').classList.add('open');
+      document.getElementById('confirmOk').onclick = doDelete;
+    }
+
+    function doDelete() {
+      const links = getLinks().filter(l => l.id !== deletingId);
+      saveLinks(links);
+      closeConfirm();
+      renderAll();
+      showToast('Link deleted');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirmOverlay').classList.remove('open');
+      deletingId = null;
+    }
+
+    // ── Clear all ──────────────────────────────────────────
+    function clearAll() {
+      if (getLinks().length === 0) { showToast('No links to clear'); return; }
+      deletingId = '__all__';
+      document.getElementById('confirmMsg').textContent = 'Delete ALL affiliate links and click data? This cannot be undone.';
+      document.getElementById('confirmOverlay').classList.add('open');
+      document.getElementById('confirmOk').onclick = () => {
+        saveLinks([]);
+        closeConfirm();
+        renderAll();
+        showToast('All links cleared');
+      };
+    }
+
+    // ── Copy ───────────────────────────────────────────────
+    function copyLink(url) {
+      navigator.clipboard.writeText(url)
+        .then(() => showToast('Copied to clipboard ✓'))
+        .catch(() => {
+          // Fallback
+          const ta = document.createElement('textarea');
+          ta.value = url; document.body.appendChild(ta);
+          ta.select(); document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast('Copied to clipboard ✓');
+        });
+    }
+
+    // ── Toast ───────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    // ── Helpers ────────────────────────────────────────────
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function escAttr(s) {
+      return String(s).replace(/'/g, "\\'");
+    }
+
+    // ── Keyboard ────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeEditDirect(); closeDetailDirect(); closeConfirm(); }
+      if (e.key === 'Enter' && document.getElementById('editOverlay').classList.contains('open')) saveEdit();
+    });
+
+    document.getElementById('inUrl').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addLink();
+    });
+
+    // ── Init ────────────────────────────────────────────────
+    renderAll();
+  </script>
+
+</body>
+</html>

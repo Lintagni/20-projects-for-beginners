@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Countdown Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f1a;
+      --surface: rgba(255,255,255,0.04);
+      --surface-solid: #151824;
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(99,102,241,0.6);
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --text: #e8e8f4;
+      --text-muted: #7878a0;
+      --text-dim: #4a4a6a;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --orange: #fb923c;
+      --radius: 20px;
+      --radius-sm: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f0f2ff;
+      --surface: rgba(255,255,255,0.8);
+      --surface-solid: #ffffff;
+      --surface-hover: rgba(255,255,255,0.95);
+      --border: rgba(0,0,0,0.1);
+      --border-focus: rgba(99,102,241,0.5);
+      --text: #1a1a2e;
+      --text-muted: #5a5a7a;
+      --text-dim: #9090b0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 1.25rem 5rem;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 5%, rgba(99,102,241,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 40% at 80% 85%, rgba(251,146,60,0.07) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 2.5rem 0 2rem; flex-wrap: wrap; gap: 1rem;
+    }
+
+    .header-left h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 700; letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    [data-theme="light"] .header-left h1 {
+      background: linear-gradient(135deg, #1a1a2e 30%, var(--accent));
+      -webkit-background-clip: text; background-clip: text;
+    }
+
+    .header-left p { color: var(--text-muted); font-size: 0.88rem; margin-top: 0.3rem; }
+
+    .header-right { display: flex; gap: 0.6rem; align-items: center; }
+
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      cursor: pointer; font-size: 1.05rem; display: grid; place-items: center;
+      backdrop-filter: blur(10px); transition: background 0.2s, transform 0.2s; color: var(--text);
+    }
+    .icon-btn:hover { background: var(--surface-hover); transform: scale(1.08); }
+
+    .btn-add {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1.1rem; border-radius: 999px;
+      border: 1px solid var(--accent); background: var(--accent);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 14px var(--accent-glow);
+      transition: all 0.18s;
+    }
+    .btn-add:hover { background: var(--accent-light); border-color: var(--accent-light); transform: translateY(-1px); }
+
+    /* ── Timers grid ── */
+    .timers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    /* ── Timer Card ── */
+    .timer-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .timer-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-light), transparent);
+      opacity: 0.4;
+    }
+
+    .timer-card.running { border-color: rgba(99,102,241,0.4); box-shadow: 0 0 24px rgba(99,102,241,0.1); }
+    .timer-card.done    { border-color: rgba(34,211,153,0.5); box-shadow: 0 0 24px rgba(34,211,153,0.15); animation: pulse 1.2s ease infinite; }
+    .timer-card.warning { border-color: rgba(251,191,36,0.5); box-shadow: 0 0 20px rgba(251,191,36,0.12); }
+    .timer-card.danger  { border-color: rgba(248,113,113,0.5); box-shadow: 0 0 20px rgba(248,113,113,0.12); }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 24px rgba(34,211,153,0.15); }
+      50%       { box-shadow: 0 0 36px rgba(34,211,153,0.35); }
+    }
+
+    /* Card header */
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem;
+    }
+
+    .timer-name-input {
+      background: transparent; border: none; border-bottom: 1px solid transparent;
+      color: var(--text); font-family: 'Inter', sans-serif;
+      font-size: 0.9rem; font-weight: 600; outline: none;
+      padding: 0.1rem 0; width: 160px;
+      transition: border-color 0.2s;
+    }
+    .timer-name-input:focus { border-color: var(--border-focus); }
+    .timer-name-input::placeholder { color: var(--text-dim); }
+
+    .card-del {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); font-size: 0.75rem; cursor: pointer;
+      display: grid; place-items: center;
+      transition: color 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .card-del:hover { color: var(--red); border-color: var(--red); background: rgba(248,113,113,0.1); }
+
+    /* Time display */
+    .time-display {
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      margin: 0.6rem 0;
+      color: var(--text);
+      transition: color 0.3s;
+    }
+
+    .time-display.running { color: var(--accent-light); }
+    .time-display.warning { color: var(--yellow); }
+    .time-display.danger  { color: var(--orange); }
+    .time-display.done    { color: var(--green); }
+
+    /* Progress bar */
+    .progress-wrap {
+      margin: 0.9rem 0;
+      height: 5px;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      transition: width 0.9s linear, background 0.3s;
+    }
+
+    .progress-fill.warning { background: linear-gradient(90deg, var(--yellow), #fde68a); }
+    .progress-fill.danger  { background: linear-gradient(90deg, var(--orange), #fca5a5); }
+    .progress-fill.done    { background: linear-gradient(90deg, var(--green), #6ee7b7); }
+
+    /* Status label */
+    .status-label {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.9rem;
+      min-height: 1em;
+      transition: color 0.3s;
+    }
+
+    .status-label.running { color: var(--accent-light); }
+    .status-label.paused  { color: var(--yellow); }
+    .status-label.done    { color: var(--green); }
+
+    /* Setup inputs (shown before start) */
+    .setup-row {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .time-field {
+      display: flex; flex-direction: column; gap: 0.2rem;
+    }
+
+    .time-field label {
+      font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.06em; text-transform: uppercase; text-align: center;
+    }
+
+    .time-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.4rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    [data-theme="light"] .time-field input { background: rgba(255,255,255,0.8); }
+    .time-field input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+    .time-field input::-webkit-inner-spin-button { display: none; }
+
+    /* Controls */
+    .controls {
+      display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.5rem 0.9rem; border-radius: 999px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-muted); font-family: 'Inter', sans-serif;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.18s;
+    }
+
+    .ctrl-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+    .ctrl-btn.start  { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 10px var(--accent-glow); }
+    .ctrl-btn.start:hover { background: var(--accent-light); border-color: var(--accent-light); }
+
+    .ctrl-btn.pause  { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.3); color: var(--yellow); }
+    .ctrl-btn.pause:hover { background: rgba(251,191,36,0.25); }
+
+    .ctrl-btn.resume { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.35); color: var(--accent-light); }
+    .ctrl-btn.resume:hover { background: rgba(99,102,241,0.25); }
+
+    .ctrl-btn.reset  { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.25); color: var(--red); }
+    .ctrl-btn.reset:hover { background: rgba(248,113,113,0.2); }
+
+    /* Done overlay badge */
+    .done-badge {
+      display: none;
+      text-align: center;
+      font-size: 1.6rem;
+      margin: 0.3rem 0;
+      animation: bounce 0.6s ease infinite alternate;
+    }
+
+    .timer-card.done .done-badge { display: block; }
+
+    @keyframes bounce {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-5px); }
+    }
+
+    /* Empty state */
+    .empty-wrap {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+    .empty-wrap .big { font-size: 3rem; margin-bottom: 0.75rem; }
+    .empty-wrap p { font-size: 0.9rem; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--accent); color: #fff;
+      padding: 0.65rem 1.4rem; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600;
+      box-shadow: 0 8px 28px rgba(99,102,241,0.4);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) {
+      .time-display { font-size: 2.2rem; }
+      .timers-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-left">
+      <h1>Countdown Timer</h1>
+      <p>Multiple independent timers — start, pause, and resume each one</p>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="themeBtn" title="Toggle theme">🌙</button>
+      <button class="btn-add" onclick="addTimer()">＋ New Timer</button>
+    </div>
+  </header>
+
+  <div class="timers-grid" id="timersGrid"></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ══════════════════════════════
+     STATE
+  ══════════════════════════════ */
+  let timers = [];
+  let idSeq  = 0;
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  /* ══════════════════════════════
+     AUDIO
+  ══════════════════════════════ */
+  function playDone() {
+    // Three-tone chime
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    notes.forEach((freq, i) => {
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = audioCtx.currentTime + i * 0.22;
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(0.35, start + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.6);
+      osc.start(start);
+      osc.stop(start + 0.65);
+    });
+  }
+
+  /* ══════════════════════════════
+     HELPERS
+  ══════════════════════════════ */
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+  function fmtTime(sec) {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (h > 0) return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return `${pad(m)}:${pad(s)}`;
+  }
+
+  function getColorClass(timer) {
+    if (timer.state === 'done') return 'done';
+    if (timer.state === 'idle') return '';
+    const pct = timer.remaining / timer.total;
+    if (pct <= 0.1) return 'danger';
+    if (pct <= 0.25) return 'warning';
+    return 'running';
+  }
+
+  /* ══════════════════════════════
+     TIMER MANAGEMENT
+  ══════════════════════════════ */
+  function addTimer(name = '') {
+    const id = ++idSeq;
+    timers.push({
+      id,
+      name: name || `Timer ${id}`,
+      h: 0, m: 5, s: 0,
+      total: 300,
+      remaining: 300,
+      state: 'idle',   // idle | running | paused | done
+      interval: null
+    });
+    render();
+    // Focus name input of new card
+    setTimeout(() => {
+      const el = document.getElementById(`name_${id}`);
+      if (el) el.focus();
+    }, 50);
+  }
+
+  function deleteTimer(id) {
+    const t = timers.find(t => t.id === id);
+    if (t && t.interval) clearInterval(t.interval);
+    timers = timers.filter(t => t.id !== id);
+    render();
+  }
+
+  function startTimer(id) {
+    const t = timers.find(t => t.id === id);
+    if (!t) return;
+
+    // Read inputs if idle
+    if (t.state === 'idle') {
+      const h = parseInt(document.getElementById(`h_${id}`)?.value) || 0;
+      const m = parseInt(document.getElementById(`m_${id}`)?.value) || 0;
+      const s = parseInt(document.getElementById(`s_${id}`)?.value) || 0;
+      const total = h * 3600 + m * 60 + s;
+      if (total <= 0) { showToast('Please set a time greater than 0'); return; }
+      t.h = h; t.m = m; t.s = s;
+      t.total = total;
+      t.remaining = total;
+    }
+
+    t.state = 'running';
+    t.interval = setInterval(() => tick(id), 1000);
+    renderCard(id);
+  }
+
+  function pauseTimer(id) {
+    const t = timers.find(t => t.id === id);
+    if (!t) return;
+    clearInterval(t.interval);
+    t.interval = null;
+    t.state = 'paused';
+    renderCard(id);
+  }
+
+  function resumeTimer(id) {
+    const t = timers.find(t => t.id === id);
+    if (!t) return;
+    t.state = 'running';
+    t.interval = setInterval(() => tick(id), 1000);
+    renderCard(id);
+  }
+
+  function resetTimer(id) {
+    const t = timers.find(t => t.id === id);
+    if (!t) return;
+    clearInterval(t.interval);
+    t.interval = null;
+    t.remaining = t.total;
+    t.state = 'idle';
+    renderCard(id);
+  }
+
+  function tick(id) {
+    const t = timers.find(t => t.id === id);
+    if (!t) return;
+    t.remaining--;
+    if (t.remaining <= 0) {
+      t.remaining = 0;
+      clearInterval(t.interval);
+      t.interval = null;
+      t.state = 'done';
+      playDone();
+      showToast(`⏰ "${t.name}" finished!`);
+    }
+    renderCard(id);
+  }
+
+  /* ══════════════════════════════
+     RENDER
+  ══════════════════════════════ */
+  function render() {
+    const grid = document.getElementById('timersGrid');
+
+    if (!timers.length) {
+      grid.innerHTML = `
+        <div class="empty-wrap">
+          <div class="big">⏱️</div>
+          <p>No timers yet — click <strong>+ New Timer</strong> to get started</p>
+        </div>`;
+      return;
+    }
+
+    // Keep existing cards, add/remove as needed
+    const existing = new Set([...grid.querySelectorAll('.timer-card')].map(el => el.dataset.id));
+    const wanted   = new Set(timers.map(t => String(t.id)));
+
+    // Remove deleted
+    existing.forEach(id => {
+      if (!wanted.has(id)) grid.querySelector(`[data-id="${id}"]`)?.remove();
+    });
+
+    // Add new
+    timers.forEach(t => {
+      if (!existing.has(String(t.id))) {
+        const el = buildCard(t);
+        grid.appendChild(el);
+      } else {
+        updateCard(t);
+      }
+    });
+  }
+
+  function buildCard(t) {
+    const el = document.createElement('div');
+    el.className = 'timer-card';
+    el.dataset.id = t.id;
+    el.innerHTML = cardHTML(t);
+    return el;
+  }
+
+  function renderCard(id) {
+    const t   = timers.find(t => t.id === id);
+    const el  = document.querySelector(`.timer-card[data-id="${id}"]`);
+    if (!t || !el) return;
+    updateCard(t, el);
+  }
+
+  function updateCard(t, el) {
+    if (!el) el = document.querySelector(`.timer-card[data-id="${t.id}"]`);
+    if (!el) return;
+
+    const cls = getColorClass(t);
+    el.className = `timer-card ${cls}`;
+
+    // Time display
+    const td = el.querySelector('.time-display');
+    if (td) { td.textContent = fmtTime(t.remaining); td.className = `time-display ${cls}`; }
+
+    // Progress
+    const pf = el.querySelector('.progress-fill');
+    if (pf) {
+      const pct = t.total > 0 ? (t.remaining / t.total) * 100 : 0;
+      pf.style.width = pct + '%';
+      pf.className = `progress-fill ${cls}`;
+    }
+
+    // Status
+    const sl = el.querySelector('.status-label');
+    if (sl) {
+      const labels = { idle: '', running: '▶ Running', paused: '⏸ Paused', done: '✓ Complete!' };
+      sl.textContent = labels[t.state] || '';
+      sl.className = `status-label ${t.state}`;
+    }
+
+    // Setup row visibility
+    const sr = el.querySelector('.setup-row');
+    if (sr) sr.style.display = t.state === 'idle' ? 'grid' : 'none';
+
+    // Controls
+    const ctrl = el.querySelector('.controls');
+    if (ctrl) ctrl.innerHTML = controlsHTML(t);
+  }
+
+  function cardHTML(t) {
+    const cls = getColorClass(t);
+    return `
+      <div class="card-header">
+        <input class="timer-name-input" id="name_${t.id}" value="${t.name}"
+          placeholder="Timer name"
+          onchange="renameTimer(${t.id}, this.value)" />
+        <button class="card-del" onclick="deleteTimer(${t.id})" title="Delete timer">✕</button>
+      </div>
+
+      <div class="setup-row" id="setup_${t.id}" style="${t.state !== 'idle' ? 'display:none' : ''}">
+        <div class="time-field">
+          <label for="h_${t.id}">Hours</label>
+          <input type="number" id="h_${t.id}" min="0" max="99" value="${t.h}" placeholder="00" />
+        </div>
+        <div class="time-field">
+          <label for="m_${t.id}">Mins</label>
+          <input type="number" id="m_${t.id}" min="0" max="59" value="${t.m}" placeholder="05" />
+        </div>
+        <div class="time-field">
+          <label for="s_${t.id}">Secs</label>
+          <input type="number" id="s_${t.id}" min="0" max="59" value="${t.s}" placeholder="00" />
+        </div>
+      </div>
+
+      <div class="done-badge">🎉</div>
+      <div class="time-display ${cls}">${fmtTime(t.remaining)}</div>
+
+      <div class="progress-wrap">
+        <div class="progress-fill ${cls}" style="width:${t.total > 0 ? (t.remaining/t.total)*100 : 0}%"></div>
+      </div>
+
+      <div class="status-label ${t.state}">
+        ${{ idle: '', running: '▶ Running', paused: '⏸ Paused', done: '✓ Complete!' }[t.state] || ''}
+      </div>
+
+      <div class="controls">${controlsHTML(t)}</div>
+    `;
+  }
+
+  function controlsHTML(t) {
+    if (t.state === 'idle') {
+      return `<button class="ctrl-btn start" onclick="startTimer(${t.id})">▶ Start</button>`;
+    }
+    if (t.state === 'running') {
+      return `
+        <button class="ctrl-btn pause"  onclick="pauseTimer(${t.id})">⏸ Pause</button>
+        <button class="ctrl-btn reset"  onclick="resetTimer(${t.id})">↺ Reset</button>`;
+    }
+    if (t.state === 'paused') {
+      return `
+        <button class="ctrl-btn resume" onclick="resumeTimer(${t.id})">▶ Resume</button>
+        <button class="ctrl-btn reset"  onclick="resetTimer(${t.id})">↺ Reset</button>`;
+    }
+    if (t.state === 'done') {
+      return `
+        <button class="ctrl-btn start" onclick="resetTimer(${t.id})">↺ Restart</button>`;
+    }
+    return '';
+  }
+
+  function renameTimer(id, name) {
+    const t = timers.find(t => t.id === id);
+    if (t) t.name = name || `Timer ${id}`;
+  }
+
+  /* ══════════════════════════════
+     THEME
+  ══════════════════════════════ */
+  function initTheme() {
+    const saved = localStorage.getItem('ct_theme') || 'dark';
+    document.documentElement.dataset.theme = saved;
+    document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+  }
+
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur  = document.documentElement.dataset.theme;
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('ct_theme', next);
+  });
+
+  /* ══════════════════════════════
+     INIT
+  ══════════════════════════════ */
+  initTheme();
+  // Start with two example timers
+  addTimer('Pomodoro');
+  // Set sensible default for first timer
+  timers[0].m = 25; timers[0].s = 0; timers[0].total = 1500; timers[0].remaining = 1500;
+  render();
+  addTimer('Break');
+  timers[1].m = 5; timers[1].s = 0; timers[1].total = 300; timers[1].remaining = 300;
+  render();
+</script>
+</body>
+</html>

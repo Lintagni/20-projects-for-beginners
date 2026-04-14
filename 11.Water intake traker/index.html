@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Water Intake Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Themes ── */
+    [data-theme="dark"] {
+      --bg:         #0b111e;
+      --bg2:        #111827;
+      --surface:    #1a2235;
+      --surface2:   #222e45;
+      --surface3:   #2a3852;
+      --border:     #2a3852;
+      --text:       #e2e8f0;
+      --text2:      #94a3b8;
+      --text3:      #64748b;
+      --water:      #38bdf8;
+      --water2:     #0ea5e9;
+      --water-bg:   rgba(56,189,248,0.1);
+      --water-glow: rgba(56,189,248,0.25);
+      --green:      #4ade80;
+      --green-bg:   rgba(74,222,128,0.1);
+      --yellow:     #fbbf24;
+      --yellow-bg:  rgba(251,191,36,0.1);
+      --red:        #f87171;
+      --shadow:     0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    [data-theme="light"] {
+      --bg:         #f0f7ff;
+      --bg2:        #e8f4fd;
+      --surface:    #ffffff;
+      --surface2:   #f1f8ff;
+      --surface3:   #dbeafe;
+      --border:     #bfdbfe;
+      --text:       #1e3a5f;
+      --text2:      #4a7ab5;
+      --text3:      #7bafd4;
+      --water:      #0284c7;
+      --water2:     #0369a1;
+      --water-bg:   rgba(2,132,199,0.1);
+      --water-glow: rgba(2,132,199,0.2);
+      --green:      #16a34a;
+      --green-bg:   rgba(22,163,74,0.1);
+      --yellow:     #d97706;
+      --yellow-bg:  rgba(217,119,6,0.1);
+      --red:        #dc2626;
+      --shadow:     0 8px 32px rgba(2,132,199,0.12);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+      padding-bottom: 5rem;
+    }
+
+    /* ── Topbar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow);
+    }
+
+    .logo { display: flex; align-items: center; gap: 0.6rem; }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--water), var(--water2));
+      border-radius: 9px;
+      display: grid; place-items: center;
+      font-size: 1.1rem;
+    }
+    .logo h1 { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .logo h1 span { color: var(--water); }
+
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+
+    .date-pill {
+      font-size: 0.78rem;
+      color: var(--text2);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.3rem 0.9rem;
+    }
+
+    /* Theme toggle */
+    .theme-toggle {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: grid; place-items: center;
+      font-size: 1rem;
+      transition: background 0.2s, transform 0.15s;
+      color: var(--text);
+    }
+    .theme-toggle:hover { transform: rotate(20deg); }
+
+    /* ── Layout ── */
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.82rem; color: var(--text3);
+      text-decoration: none; margin-bottom: 1.75rem;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    /* ── Reminder banner ── */
+    .reminder {
+      background: var(--yellow-bg);
+      border: 1px solid var(--yellow);
+      border-radius: 10px;
+      padding: 0.75rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--yellow);
+      font-weight: 600;
+      animation: pulse-border 2s ease infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { border-color: var(--yellow); }
+      50%      { border-color: transparent; }
+    }
+
+    /* ── Main card ── */
+    .main-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+      display: flex;
+      gap: 2.5rem;
+      align-items: center;
+    }
+
+    @media (max-width: 620px) {
+      .main-card { flex-direction: column; gap: 1.5rem; }
+    }
+
+    /* ── Wave glass ── */
+    .glass-wrap {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .glass-svg-wrap {
+      position: relative;
+      width: 120px;
+      height: 160px;
+    }
+
+    .glass-outer {
+      width: 120px;
+      height: 160px;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      border-radius: 8px 8px 18px 18px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .water-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(180deg, var(--water) 0%, var(--water2) 100%);
+      transition: height 0.6s cubic-bezier(0.34,1.56,0.64,1);
+      border-radius: 0 0 16px 16px;
+    }
+
+    .wave {
+      position: absolute;
+      top: -8px;
+      left: -50%;
+      width: 200%;
+      height: 16px;
+      background: var(--water);
+      border-radius: 40%;
+      animation: wave 2.5s linear infinite;
+    }
+    .wave2 {
+      animation-delay: -1.2s;
+      opacity: 0.5;
+      background: var(--water2);
+    }
+
+    @keyframes wave {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .glass-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .glass-pct {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .glass-count {
+      font-size: 0.75rem;
+      color: var(--text2);
+      font-weight: 600;
+    }
+
+    .glass-emoji { font-size: 1.75rem; }
+
+    /* ── Right section ── */
+    .main-right { flex: 1; min-width: 0; }
+
+    .today-heading {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .today-sub { font-size: 0.82rem; color: var(--text2); margin-bottom: 1.25rem; }
+
+    /* Progress bar */
+    .progress-wrap { margin-bottom: 1.5rem; }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .progress-label { font-size: 0.78rem; color: var(--text2); font-weight: 600; }
+    .progress-numbers { font-size: 0.78rem; font-weight: 700; color: var(--water); }
+
+    .progress-track {
+      height: 10px;
+      background: var(--surface2);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--water2), var(--water));
+      border-radius: 999px;
+      transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 8px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 999px;
+    }
+
+    /* Glasses grid */
+    .glasses-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .glass-dot {
+      width: 34px; height: 34px;
+      border-radius: 8px;
+      border: 2px solid var(--border);
+      background: var(--surface2);
+      display: grid; place-items: center;
+      font-size: 1.1rem;
+      transition: all 0.25s;
+      cursor: default;
+    }
+    .glass-dot.filled {
+      background: var(--water-bg);
+      border-color: var(--water);
+      box-shadow: 0 0 8px var(--water-glow);
+    }
+
+    /* Buttons */
+    .action-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 0.55rem 1.1rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      transition: transform 0.12s, opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-water {
+      background: linear-gradient(135deg, var(--water2), var(--water));
+      color: #fff;
+      box-shadow: 0 4px 14px var(--water-glow);
+      font-size: 1rem;
+      padding: 0.65rem 1.4rem;
+    }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text2);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); }
+    .btn-danger { background: rgba(248,113,113,0.1); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+    /* ── Goal setting ── */
+    .goal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .goal-card label { font-size: 0.85rem; color: var(--text2); font-weight: 600; }
+
+    .goal-input-wrap { display: flex; align-items: center; gap: 0.5rem; }
+
+    input[type="number"] {
+      width: 70px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.65rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      outline: none;
+      text-align: center;
+      transition: border-color 0.15s;
+    }
+    input[type="number"]:focus { border-color: var(--water); }
+
+    .goal-note { font-size: 0.75rem; color: var(--text3); margin-left: auto; }
+
+    /* ── Stats grid ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 13px;
+      padding: 1rem 1.2rem;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text3);
+      margin-bottom: 0.35rem;
+    }
+    .stat-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    .stat-sub { font-size: 0.72rem; color: var(--text3); margin-top: 0.1rem; }
+
+    /* ── Weekly chart ── */
+    .week-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.4rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      margin-bottom: 1.1rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .week-bars {
+      display: flex;
+      gap: 0.6rem;
+      align-items: flex-end;
+      height: 90px;
+    }
+
+    .week-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-count { font-size: 0.65rem; color: var(--text3); font-weight: 600; }
+
+    .bar-outer {
+      width: 100%;
+      border-radius: 5px 5px 0 0;
+      overflow: hidden;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      transition: height 0.5s ease;
+    }
+
+    .bar-inner {
+      background: linear-gradient(180deg, var(--water), var(--water2));
+      border-radius: 4px 4px 0 0;
+      transition: height 0.5s ease;
+    }
+
+    .bar-inner.goal-met { background: linear-gradient(180deg, var(--green), #16a34a); }
+
+    .bar-day {
+      font-size: 0.68rem;
+      color: var(--text3);
+      font-weight: 600;
+      margin-top: 3px;
+    }
+    .bar-day.today { color: var(--water); font-weight: 800; }
+
+    /* ── History ── */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.4rem 1.5rem;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border-radius: 9px;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .history-date { font-size: 0.82rem; font-weight: 600; }
+    .history-right { display: flex; align-items: center; gap: 0.75rem; }
+
+    .history-glasses { font-size: 0.82rem; color: var(--text2); }
+
+    .history-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+    }
+    .badge-met    { background: var(--green-bg); color: var(--green); }
+    .badge-missed { background: var(--yellow-bg); color: var(--yellow); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.6rem 1.3rem;
+      font-size: 0.83rem; font-weight: 600;
+      color: var(--text);
+      z-index: 300;
+      transition: transform 0.28s ease;
+      white-space: nowrap;
+      box-shadow: var(--shadow);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* celebrate */
+    @keyframes celebrate {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.15); }
+      60%  { transform: scale(0.95); }
+      100% { transform: scale(1); }
+    }
+    .celebrate { animation: celebrate 0.5s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">💧</div>
+      <h1>Hydro<span>Track</span></h1>
+    </div>
+    <div class="topbar-right">
+      <div class="date-pill" id="datePill"></div>
+      <button class="theme-toggle" id="themeBtn" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+
+    <!-- Reminder -->
+    <div class="reminder" id="reminderBanner" style="display:none">
+      💧 Time to drink some water! Stay hydrated.
+    </div>
+
+    <!-- Main card -->
+    <div class="main-card">
+
+      <!-- Glass visual -->
+      <div class="glass-wrap">
+        <div class="glass-outer" id="glassOuter">
+          <div class="water-fill" id="waterFill" style="height:0%">
+            <div class="wave"></div>
+            <div class="wave wave2"></div>
+          </div>
+          <div class="glass-label">
+            <div class="glass-pct" id="glassPct">0%</div>
+            <div class="glass-count" id="glassCount">0 / 8</div>
+          </div>
+        </div>
+        <div class="glass-emoji" id="glassEmoji">🥤</div>
+      </div>
+
+      <!-- Right -->
+      <div class="main-right">
+        <div class="today-heading">Today's Intake</div>
+        <div class="today-sub" id="todaySub">Keep it up! Your body needs hydration.</div>
+
+        <!-- Progress -->
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-label">Progress</span>
+            <span class="progress-numbers" id="progressNumbers">0 / 8 glasses</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Glasses dots -->
+        <div class="glasses-grid" id="glassesGrid"></div>
+
+        <!-- Actions -->
+        <div class="action-row">
+          <button class="btn btn-water" onclick="addGlass()">💧 Add Glass</button>
+          <button class="btn btn-ghost" onclick="removeGlass()">↩ Undo</button>
+          <button class="btn btn-danger" onclick="resetToday()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal -->
+    <div class="goal-card">
+      <label>🎯 Daily Goal</label>
+      <div class="goal-input-wrap">
+        <input type="number" id="goalInput" min="1" max="20" value="8" onchange="updateGoal()" />
+        <span style="font-size:0.82rem;color:var(--text2)">glasses / day</span>
+      </div>
+      <span class="goal-note">Each glass ≈ 250 ml (8 oz)</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Weekly chart -->
+    <div class="week-card">
+      <div class="section-title">📊 This Week</div>
+      <div class="week-bars" id="weekBars"></div>
+    </div>
+
+    <!-- History -->
+    <div class="history-card">
+      <div class="section-title">🗓 History</div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Storage keys ─────────────────────────────────────
+    const KEY_DATA  = 'hydroTrackData';   // { [dateStr]: glassCount }
+    const KEY_GOAL  = 'hydroGoal';
+    const KEY_THEME = 'hydroTheme';
+    const KEY_LAST  = 'hydroLastCheck';   // for midnight reset
+
+    // ── State ─────────────────────────────────────────────
+    let goal  = parseInt(localStorage.getItem(KEY_GOAL) || '8');
+    let theme = localStorage.getItem(KEY_THEME) || 'dark';
+
+    // Apply saved theme
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
+
+    // ── Date helpers ──────────────────────────────────────
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function getData() {
+      return JSON.parse(localStorage.getItem(KEY_DATA) || '{}');
+    }
+
+    function setData(d) {
+      localStorage.setItem(KEY_DATA, JSON.stringify(d));
+    }
+
+    function todayCount() {
+      return getData()[todayStr()] || 0;
+    }
+
+    // ── Midnight reset check ──────────────────────────────
+    function checkMidnightReset() {
+      const last = localStorage.getItem(KEY_LAST);
+      const today = todayStr();
+      if (last && last !== today) {
+        // New day — nothing to reset in storage (each day stored separately)
+        // just update the last check
+      }
+      localStorage.setItem(KEY_LAST, today);
+    }
+
+    // Schedule the next midnight check
+    function scheduleMidnight() {
+      const now  = new Date();
+      const next = new Date(now);
+      next.setDate(next.getDate() + 1);
+      next.setHours(0, 0, 0, 100);
+      const ms = next - now;
+      setTimeout(() => {
+        checkMidnightReset();
+        renderAll();
+        showToast('🌅 New day! Your water count has reset.');
+        scheduleMidnight();
+      }, ms);
+    }
+
+    // ── Add / Remove ──────────────────────────────────────
+    function addGlass() {
+      const d   = getData();
+      const key = todayStr();
+      const cur = d[key] || 0;
+      if (cur >= 20) { showToast('Maximum 20 glasses logged per day'); return; }
+      d[key] = cur + 1;
+      setData(d);
+
+      if (d[key] === goal) {
+        showToast('🎉 Goal reached! Great job staying hydrated!');
+        triggerCelebrate();
+      } else {
+        showToast(`💧 Glass added! (${d[key]} / ${goal})`);
+      }
+      renderAll();
+    }
+
+    function removeGlass() {
+      const d   = getData();
+      const key = todayStr();
+      const cur = d[key] || 0;
+      if (cur === 0) { showToast('Nothing to undo'); return; }
+      d[key] = cur - 1;
+      setData(d);
+      showToast('↩ Removed one glass');
+      renderAll();
+    }
+
+    function resetToday() {
+      const d   = getData();
+      d[todayStr()] = 0;
+      setData(d);
+      showToast('↺ Today reset to 0');
+      renderAll();
+    }
+
+    // ── Goal ──────────────────────────────────────────────
+    function updateGoal() {
+      const v = parseInt(document.getElementById('goalInput').value);
+      if (isNaN(v) || v < 1) return;
+      goal = Math.min(v, 20);
+      document.getElementById('goalInput').value = goal;
+      localStorage.setItem(KEY_GOAL, goal);
+      renderAll();
+    }
+
+    // ── Theme ─────────────────────────────────────────────
+    function toggleTheme() {
+      theme = theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('themeBtn').textContent = theme === 'dark' ? '🌙' : '☀️';
+      localStorage.setItem(KEY_THEME, theme);
+    }
+
+    // ── Render all ────────────────────────────────────────
+    function renderAll() {
+      const count = todayCount();
+      const pct   = Math.min(Math.round((count / goal) * 100), 100);
+
+      // Date pill
+      document.getElementById('datePill').textContent =
+        new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
+      // Glass visual
+      document.getElementById('waterFill').style.height = pct + '%';
+      document.getElementById('glassPct').textContent   = pct + '%';
+      document.getElementById('glassCount').textContent = `${count} / ${goal}`;
+      document.getElementById('glassesGrid').innerHTML = renderDots(count);
+      document.getElementById('progressFill').style.width   = pct + '%';
+      document.getElementById('progressNumbers').textContent = `${count} / ${goal} glasses`;
+      document.getElementById('goalInput').value = goal;
+
+      // Emoji + sub message
+      const emoji = pct >= 100 ? '🏆' : pct >= 75 ? '💪' : pct >= 50 ? '😊' : pct >= 25 ? '😐' : '😴';
+      const msg   = pct >= 100 ? 'Goal achieved! Excellent hydration today! 🎉'
+                  : pct >= 75  ? 'Almost there — just a bit more!'
+                  : pct >= 50  ? 'Halfway through — keep going!'
+                  : pct >= 25  ? 'Good start — keep drinking!'
+                  :              'Start your hydration journey today.';
+      document.getElementById('glassEmoji').textContent = emoji;
+      document.getElementById('todaySub').textContent   = msg;
+
+      renderStats();
+      renderWeek();
+      renderHistory();
+    }
+
+    function renderDots(count) {
+      let html = '';
+      for (let i = 0; i < goal; i++) {
+        html += `<div class="glass-dot${i < count ? ' filled' : ''}">
+          ${i < count ? '💧' : ''}
+        </div>`;
+      }
+      return html;
+    }
+
+    // ── Stats ─────────────────────────────────────────────
+    function renderStats() {
+      const d     = getData();
+      const vals  = Object.values(d).filter(v => v > 0);
+      const total = vals.reduce((s, v) => s + v, 0);
+      const avg   = vals.length ? (total / vals.length).toFixed(1) : 0;
+      const streak = calcStreak(d);
+      const best  = vals.length ? Math.max(...vals) : 0;
+
+      document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Today</div>
+          <div class="stat-value" style="color:var(--water)">${todayCount()}</div>
+          <div class="stat-sub">of ${goal} goal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Daily Average</div>
+          <div class="stat-value">${avg}</div>
+          <div class="stat-sub">glasses / day</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Current Streak</div>
+          <div class="stat-value" style="color:var(--green)">${streak}🔥</div>
+          <div class="stat-sub">days hitting goal</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Best Day</div>
+          <div class="stat-value" style="color:var(--yellow)">${best}</div>
+          <div class="stat-sub">glasses in one day</div>
+        </div>
+      `;
+    }
+
+    function calcStreak(d) {
+      let streak = 0;
+      const cur = new Date();
+      while (true) {
+        const key = cur.toISOString().slice(0, 10);
+        if ((d[key] || 0) >= goal) {
+          streak++;
+          cur.setDate(cur.getDate() - 1);
+        } else break;
+      }
+      return streak;
+    }
+
+    // ── Weekly chart ──────────────────────────────────────
+    function renderWeek() {
+      const d      = getData();
+      const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      const today  = new Date();
+      const week   = [];
+
+      for (let i = 6; i >= 0; i--) {
+        const dt  = new Date(today);
+        dt.setDate(dt.getDate() - i);
+        const key = dt.toISOString().slice(0, 10);
+        week.push({ day: days[dt.getDay()], count: d[key] || 0, isToday: i === 0, key });
+      }
+
+      const maxVal = Math.max(...week.map(w => w.count), goal);
+      const barAreaH = 60; // px
+
+      document.getElementById('weekBars').innerHTML = week.map(w => {
+        const h       = Math.round((w.count / maxVal) * barAreaH);
+        const metGoal = w.count >= goal;
+        return `
+          <div class="week-col">
+            <div class="bar-count">${w.count || ''}</div>
+            <div class="bar-outer" style="height:${barAreaH}px">
+              <div class="bar-inner${metGoal ? ' goal-met' : ''}" style="height:${h}px"></div>
+            </div>
+            <div class="bar-day${w.isToday ? ' today' : ''}">${w.isToday ? 'Today' : w.day}</div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── History ───────────────────────────────────────────
+    function renderHistory() {
+      const d     = getData();
+      const keys  = Object.keys(d).sort((a, b) => b.localeCompare(a));
+
+      if (keys.length === 0) {
+        document.getElementById('historyList').innerHTML =
+          `<p style="font-size:0.83rem;color:var(--text3);text-align:center;padding:1.5rem">No history yet — start tracking today!</p>`;
+        return;
+      }
+
+      document.getElementById('historyList').innerHTML = keys.slice(0, 30).map(key => {
+        const count = d[key];
+        const met   = count >= goal;
+        const label = fmtDate(key);
+        const glasses = '💧'.repeat(Math.min(count, 10)) + (count > 10 ? `+${count-10}` : '');
+        return `
+          <div class="history-item">
+            <div>
+              <div class="history-date">${label}</div>
+              <div style="font-size:0.72rem;margin-top:2px">${glasses}</div>
+            </div>
+            <div class="history-right">
+              <span class="history-glasses">${count} glass${count !== 1 ? 'es' : ''}</span>
+              <span class="history-badge ${met ? 'badge-met' : 'badge-missed'}">${met ? '✓ Goal met' : '✗ Missed'}</span>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // ── Reminder logic ────────────────────────────────────
+    function checkReminder() {
+      const count = todayCount();
+      const hr    = new Date().getHours();
+
+      // Show reminder between 7am–10pm if behind pace
+      if (hr >= 7 && hr <= 22) {
+        // Expected glasses by now: proportional to time in waking hours
+        const wakingHrs  = 15; // 7am–10pm
+        const elapsed    = Math.max(0, hr - 7);
+        const expected   = Math.round((elapsed / wakingHrs) * goal);
+        const banner     = document.getElementById('reminderBanner');
+        if (count < expected && count < goal) {
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+        }
+      } else {
+        document.getElementById('reminderBanner').style.display = 'none';
+      }
+    }
+
+    // ── Celebrate ─────────────────────────────────────────
+    function triggerCelebrate() {
+      const el = document.getElementById('glassOuter');
+      el.classList.add('celebrate');
+      setTimeout(() => el.classList.remove('celebrate'), 600);
+    }
+
+    // ── Toast ─────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+    }
+
+    // ── Helpers ───────────────────────────────────────────
+    function fmtDate(iso) {
+      const d = new Date(iso + 'T00:00:00');
+      const today = todayStr();
+      const yest  = new Date(); yest.setDate(yest.getDate()-1);
+      const yestStr = yest.toISOString().slice(0,10);
+      if (iso === today) return 'Today';
+      if (iso === yestStr) return 'Yesterday';
+      return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    }
+
+    // ── Keyboard shortcut ─────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'w' || e.key === 'W') addGlass();
+      if (e.key === 'z' || e.key === 'Z') removeGlass();
+    });
+
+    // ── Init ──────────────────────────────────────────────
+    checkMidnightReset();
+    renderAll();
+    checkReminder();
+    scheduleMidnight();
+
+    // Re-check reminder every 15 min
+    setInterval(checkReminder, 15 * 60 * 1000);
+    // Re-render clock every minute
+    setInterval(() => document.getElementById('datePill').textContent =
+      new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }), 60000);
+  </script>
+
+</body>
+</html>

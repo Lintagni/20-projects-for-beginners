@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meditation Timer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-start:  #060d1f;
+      --bg-end:    #0d1f3c;
+      --surface:   rgba(255,255,255,0.05);
+      --surface2:  rgba(255,255,255,0.08);
+      --border:    rgba(255,255,255,0.1);
+      --accent:    #7dd3fc;
+      --accent2:   #38bdf8;
+      --gold:      #fde68a;
+      --green:     #86efac;
+      --green2:    #4ade80;
+      --red:       #fca5a5;
+      --text:      #e0f2fe;
+      --text2:     #93c5fd;
+      --text3:     #4a6fa5;
+      --radius:    16px;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, var(--bg-start) 0%, var(--bg-end) 100%);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient particle background ── */
+    .particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125,211,252,0.15), transparent 70%);
+      animation: drift linear infinite;
+    }
+
+    @keyframes drift {
+      0%   { transform: translateY(110vh) scale(0.4); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(-20vh) scale(1.1); opacity: 0; }
+    }
+
+    /* ── Layout ── */
+    .app { position: relative; z-index: 1; max-width: 780px; margin: 0 auto; padding: 1.5rem 1.25rem 5rem; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-size: 0.8rem; color: var(--text3);
+      text-decoration: none; margin-bottom: 1.5rem; transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--text2); }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header h1 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .header p { font-size: 0.82rem; color: var(--text3); letter-spacing: 0.06em; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 0.25rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 4px;
+      width: fit-content; margin: 0 auto 2rem;
+      backdrop-filter: blur(10px);
+    }
+    .tab {
+      padding: 0.42rem 1rem; border-radius: 9px;
+      font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; border: none;
+      background: transparent; color: var(--text3);
+      font-family: inherit; transition: all 0.18s;
+      letter-spacing: 0.03em;
+    }
+    .tab.active { background: rgba(125,211,252,0.15); color: var(--accent); }
+
+    /* ── Duration picker ── */
+    .duration-pick {
+      display: flex; justify-content: center; gap: 0.6rem;
+      flex-wrap: wrap; margin-bottom: 2.25rem;
+    }
+    .dur-btn {
+      padding: 0.5rem 1.1rem; border-radius: 999px;
+      font-size: 0.84rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text2);
+      font-family: inherit; transition: all 0.18s;
+      backdrop-filter: blur(8px);
+    }
+    .dur-btn:hover { border-color: var(--accent2); color: var(--accent); }
+    .dur-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent2); color: var(--accent); }
+    .dur-btn:disabled { opacity: 0.4; cursor: default; }
+
+    /* ── Ring timer ── */
+    .timer-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .ring-svg { width: 220px; height: 220px; transform: rotate(-90deg); }
+
+    .ring-bg   { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 8; }
+    .ring-fill {
+      fill: none; stroke: var(--accent2); stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.5s;
+      filter: drop-shadow(0 0 6px rgba(56,189,248,0.5));
+    }
+
+    .timer-center {
+      position: absolute;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 220px; height: 220px;
+    }
+    .timer-wrap { position: relative; }
+
+    .timer-time {
+      font-size: 2.6rem; font-weight: 200;
+      letter-spacing: 0.04em; color: var(--text);
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-label { font-size: 0.72rem; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 0.15rem; }
+
+    /* ── Breathing guide ── */
+    .breath-wrap {
+      margin-bottom: 2rem;
+      text-align: center;
+      min-height: 80px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .breath-circle {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.4), rgba(56,189,248,0.05));
+      border: 1px solid rgba(56,189,248,0.3);
+      transition: transform 0.1s linear;
+    }
+
+    .breath-label {
+      font-size: 0.8rem; color: var(--text2);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      font-weight: 600;
+    }
+    .breath-phase { font-size: 1.1rem; font-weight: 300; color: var(--accent); }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex; justify-content: center; align-items: center;
+      gap: 1.1rem; margin-bottom: 2rem;
+    }
+
+    .ctrl-btn {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text2); cursor: pointer; font-size: 1.1rem;
+      display: grid; place-items: center;
+      transition: all 0.18s; backdrop-filter: blur(8px);
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.12); color: var(--text); transform: scale(1.06); }
+
+    .ctrl-btn-main {
+      width: 68px; height: 68px; border-radius: 50%;
+      background: linear-gradient(135deg, rgba(56,189,248,0.3), rgba(56,189,248,0.1));
+      border: 1px solid var(--accent2);
+      color: var(--accent); cursor: pointer; font-size: 1.5rem;
+      display: grid; place-items: center;
+      transition: all 0.18s; backdrop-filter: blur(8px);
+      box-shadow: 0 0 24px rgba(56,189,248,0.2);
+    }
+    .ctrl-btn-main:hover { background: rgba(56,189,248,0.25); box-shadow: 0 0 36px rgba(56,189,248,0.35); transform: scale(1.05); }
+
+    /* ── Ambient sound ── */
+    .ambient-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem 1.4rem;
+      margin-bottom: 1.5rem; backdrop-filter: blur(8px);
+    }
+    .ambient-title { font-size: 0.75rem; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.75rem; }
+    .sound-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .sound-pill {
+      padding: 0.38rem 0.9rem; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text2);
+      font-family: inherit; transition: all 0.15s;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .sound-pill:hover { border-color: var(--accent2); color: var(--accent); }
+    .sound-pill.active { background: rgba(56,189,248,0.12); border-color: var(--accent2); color: var(--accent); }
+
+    .volume-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.75rem; }
+    .volume-row label { font-size: 0.75rem; color: var(--text3); flex-shrink: 0; }
+    input[type="range"] {
+      flex: 1; -webkit-appearance: none; height: 4px;
+      background: var(--border); border-radius: 999px; outline: none; cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent2); cursor: pointer;
+    }
+
+    /* ── Stats strip ── */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem; margin-bottom: 1.5rem;
+    }
+    .sstat {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0.9rem 1rem;
+      text-align: center; backdrop-filter: blur(8px);
+    }
+    .sstat-icon  { font-size: 1.2rem; margin-bottom: 0.25rem; }
+    .sstat-val   { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; }
+    .sstat-lbl   { font-size: 0.65rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 0.1rem; }
+
+    /* ── Progress chart ── */
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.3rem 1.4rem;
+      margin-bottom: 1.5rem; backdrop-filter: blur(8px);
+    }
+    .section-title { font-size: 0.8rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; }
+    .chart-bars { display: flex; gap: 5px; align-items: flex-end; height: 80px; }
+    .chart-col  { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; height: 100%; justify-content: flex-end; }
+    .chart-bar  { width: 100%; border-radius: 4px 4px 0 0; min-height: 3px; background: rgba(56,189,248,0.25); transition: height 0.4s ease; }
+    .chart-bar.has-data { background: linear-gradient(180deg, var(--accent), rgba(56,189,248,0.3)); }
+    .chart-day  { font-size: 0.6rem; color: var(--text3); margin-top: 3px; }
+    .chart-day.today { color: var(--accent); font-weight: 700; }
+    .chart-val  { font-size: 0.6rem; color: var(--text3); }
+
+    /* ── Session history ── */
+    .history-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.3rem 1.4rem;
+      backdrop-filter: blur(8px);
+    }
+    .history-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 260px; overflow-y: auto; }
+    .history-item {
+      background: var(--surface2); border-radius: 10px; padding: 0.65rem 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+      border: 1px solid var(--border); font-size: 0.82rem;
+    }
+    .history-left { display: flex; align-items: center; gap: 0.65rem; }
+    .history-mood { font-size: 1.1rem; }
+    .history-dur  { font-weight: 700; color: var(--accent); }
+    .history-date { font-size: 0.72rem; color: var(--text3); }
+
+    /* ── Reflection modal ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(6,13,31,0.85); backdrop-filter: blur(8px);
+      z-index: 200; display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: rgba(13,31,60,0.95); border: 1px solid var(--border);
+      border-radius: 20px; width: 100%; max-width: 400px;
+      padding: 2rem; text-align: center; animation: up 0.25s ease;
+    }
+    @keyframes up { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:none; } }
+    .modal h2    { font-size: 1.2rem; font-weight: 300; letter-spacing: 0.06em; margin-bottom: 0.4rem; color: var(--accent); }
+    .modal p     { font-size: 0.82rem; color: var(--text3); margin-bottom: 1.5rem; line-height: 1.6; }
+    .mood-picks  { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .mood-btn    {
+      display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+      padding: 0.85rem 1.2rem; border-radius: 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      cursor: pointer; transition: all 0.18s; color: var(--text);
+      font-size: 0.78rem; font-weight: 600;
+    }
+    .mood-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--accent2); }
+    .mood-btn span  { font-size: 2rem; }
+    .mood-great:hover { border-color: var(--green2); }
+    .mood-good:hover  { border-color: var(--accent2); }
+    .mood-ok:hover    { border-color: var(--gold); }
+    .modal-skip { font-size: 0.75rem; color: var(--text3); cursor: pointer; text-decoration: underline; margin-top: 0.5rem; display: inline-block; }
+    .modal-skip:hover { color: var(--text2); }
+
+    /* ── Bell animation ── */
+    .completion-ring {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(56,189,248,0.2), transparent);
+      border: 2px solid var(--accent2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; margin: 0 auto 1.25rem;
+      animation: ring-pulse 1.2s ease infinite;
+    }
+    @keyframes ring-pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,0.4); }
+      50%      { box-shadow: 0 0 0 18px rgba(56,189,248,0); }
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: rgba(13,31,60,0.95); border: 1px solid var(--border);
+      border-radius: 999px; padding: 0.6rem 1.3rem;
+      font-size: 0.82rem; font-weight: 600; color: var(--text);
+      z-index: 300; transition: transform 0.28s ease; white-space: nowrap;
+      backdrop-filter: blur(10px);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Empty history ── */
+    .empty { text-align: center; padding: 2rem 1rem; color: var(--text3); font-size: 0.83rem; }
+
+    @media (max-width: 480px) {
+      .ring-svg, .timer-center { width: 190px; height: 190px; }
+      .timer-time { font-size: 2.2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Particle background -->
+  <div class="particles" id="particles"></div>
+
+  <div class="app">
+    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+
+    <div class="header">
+      <h1>Meditation</h1>
+      <p>Find your calm · Breathe · Be present</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('timer')">🧘 Timer</button>
+      <button class="tab" onclick="switchTab('progress')">📊 Progress</button>
+    </div>
+
+    <!-- ═══ TIMER TAB ═══ -->
+    <div id="tabTimer">
+
+      <!-- Duration selector -->
+      <div class="duration-pick" id="durPick">
+        <button class="dur-btn active" onclick="setDuration(5,this)">5 min</button>
+        <button class="dur-btn" onclick="setDuration(10,this)">10 min</button>
+        <button class="dur-btn" onclick="setDuration(15,this)">15 min</button>
+        <button class="dur-btn" onclick="setDuration(20,this)">20 min</button>
+        <button class="dur-btn" onclick="setDuration(30,this)">30 min</button>
+        <button class="dur-btn" onclick="setDuration(45,this)">45 min</button>
+      </div>
+
+      <!-- Ring timer -->
+      <div class="timer-wrap">
+        <svg class="ring-svg" viewBox="0 0 220 220">
+          <circle class="ring-bg"   cx="110" cy="110" r="96" />
+          <circle class="ring-fill" cx="110" cy="110" r="96" id="ringFill"
+                  stroke-dasharray="603" stroke-dashoffset="603" />
+        </svg>
+        <div class="timer-center">
+          <div class="timer-time" id="timerTime">05:00</div>
+          <div class="timer-label" id="timerLabel">Ready</div>
+        </div>
+      </div>
+
+      <!-- Breathing guide -->
+      <div class="breath-wrap" id="breathWrap">
+        <div class="breath-circle" id="breathCircle"></div>
+        <div class="breath-phase" id="breathPhase">Breathe with the circle</div>
+        <div class="breath-label" id="breathLabel">Press start to begin</div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="ctrl-btn" onclick="resetTimer()" title="Reset">↺</button>
+        <button class="ctrl-btn-main" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="ctrl-btn" onclick="skipSession()" title="End session">⏭</button>
+      </div>
+
+      <!-- Ambient sounds -->
+      <div class="ambient-wrap">
+        <div class="ambient-title">🎵 Ambient Sounds</div>
+        <div class="sound-pills">
+          <button class="sound-pill" onclick="toggleSound('none',this)">🔇 None</button>
+          <button class="sound-pill" onclick="toggleSound('rain',this)">🌧 Rain</button>
+          <button class="sound-pill" onclick="toggleSound('ocean',this)">🌊 Ocean</button>
+          <button class="sound-pill" onclick="toggleSound('birds',this)">🐦 Birds</button>
+          <button class="sound-pill" onclick="toggleSound('forest',this)">🌿 Forest</button>
+          <button class="sound-pill" onclick="toggleSound('fire',this)">🔥 Fire</button>
+          <button class="sound-pill" onclick="toggleSound('bowl',this)">🪘 Singing Bowl</button>
+        </div>
+        <div class="volume-row">
+          <label>🔊 Volume</label>
+          <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="0.4" oninput="setVolume(this.value)" />
+        </div>
+      </div>
+
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="sstat">
+          <div class="sstat-icon">🧘</div>
+          <div class="sstat-val" id="statSessions">0</div>
+          <div class="sstat-lbl">Sessions</div>
+        </div>
+        <div class="sstat">
+          <div class="sstat-icon">🔥</div>
+          <div class="sstat-val" id="statStreak">0</div>
+          <div class="sstat-lbl">Day Streak</div>
+        </div>
+        <div class="sstat">
+          <div class="sstat-icon">⏱</div>
+          <div class="sstat-val" id="statMinutes">0</div>
+          <div class="sstat-lbl">Total Min</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ═══ PROGRESS TAB ═══ -->
+    <div id="tabProgress" style="display:none">
+
+      <!-- Stats strip (same data, repeated for clarity) -->
+      <div class="stats-strip" style="margin-bottom:1.5rem">
+        <div class="sstat">
+          <div class="sstat-icon">🧘</div>
+          <div class="sstat-val" id="pStatSessions">0</div>
+          <div class="sstat-lbl">Sessions</div>
+        </div>
+        <div class="sstat">
+          <div class="sstat-icon">🔥</div>
+          <div class="sstat-val" id="pStatStreak">0</div>
+          <div class="sstat-lbl">Streak</div>
+        </div>
+        <div class="sstat">
+          <div class="sstat-icon">⏱</div>
+          <div class="sstat-val" id="pStatMinutes">0</div>
+          <div class="sstat-lbl">Total Min</div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="section-title">Sessions — Last 14 Days</div>
+        <div class="chart-bars" id="chartBars"></div>
+      </div>
+
+      <!-- History -->
+      <div class="history-card">
+        <div class="section-title" style="margin-bottom:0.85rem">Recent Sessions</div>
+        <div class="history-list" id="historyList"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Reflection modal -->
+  <div class="overlay" id="reflectOverlay">
+    <div class="modal">
+      <div class="completion-ring">🔔</div>
+      <h2>Session Complete</h2>
+      <p>Well done. Take a moment to notice how you feel.<br>How was your meditation?</p>
+      <div class="mood-picks">
+        <button class="mood-btn mood-great" onclick="saveMood('great')"><span>😌</span>Great</button>
+        <button class="mood-btn mood-good"  onclick="saveMood('good')"><span>🙂</span>Good</button>
+        <button class="mood-btn mood-ok"    onclick="saveMood('ok')"><span>😐</span>OK</button>
+      </div>
+      <span class="modal-skip" onclick="saveMood(null)">Skip</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Particles ─────────────────────────────────────────
+    (function() {
+      const wrap = document.getElementById('particles');
+      for (let i = 0; i < 18; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const s = 40 + Math.random() * 120;
+        p.style.cssText = `
+          width:${s}px; height:${s}px;
+          left:${Math.random()*100}%;
+          animation-duration:${12+Math.random()*20}s;
+          animation-delay:${-Math.random()*20}s;
+          opacity:${0.3+Math.random()*0.4};
+        `;
+        wrap.appendChild(p);
+      }
+    })();
+
+    // ── Storage ───────────────────────────────────────────
+    const KEY = 'meditationSessions';
+    function getSessions()  { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+    function saveSessions(s){ localStorage.setItem(KEY, JSON.stringify(s)); }
+
+    // ── State ─────────────────────────────────────────────
+    let totalSecs    = 5 * 60;
+    let remaining    = totalSecs;
+    let running      = false;
+    let ticker       = null;
+    let activeSound  = 'none';
+    let audioCtx     = null;
+    let soundNode    = null;
+    let volume       = 0.4;
+    let pendingSession = null;  // { duration, startedAt }
+
+    const CIRCUMFERENCE = 2 * Math.PI * 96; // ~603
+
+    // ── Duration ──────────────────────────────────────────
+    function setDuration(min, btn) {
+      if (running) return;
+      totalSecs = min * 60;
+      remaining = totalSecs;
+      document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateDisplay();
+    }
+
+    // ── Timer ─────────────────────────────────────────────
+    function togglePlay() {
+      if (running) pause(); else start();
+    }
+
+    function start() {
+      if (remaining <= 0) { remaining = totalSecs; }
+      running = true;
+      if (!pendingSession) pendingSession = { duration: totalSecs / 60, startedAt: new Date().toISOString() };
+      document.getElementById('playBtn').textContent = '⏸';
+      document.getElementById('timerLabel').textContent = 'Meditating…';
+      document.querySelectorAll('.dur-btn').forEach(b => b.disabled = true);
+      startSound();
+      startBreath();
+      ticker = setInterval(tick, 1000);
+    }
+
+    function pause() {
+      running = false;
+      clearInterval(ticker);
+      document.getElementById('playBtn').textContent = '▶';
+      document.getElementById('timerLabel').textContent = 'Paused';
+      stopBreath();
+    }
+
+    function tick() {
+      remaining--;
+      if (remaining <= 0) {
+        remaining = 0;
+        updateDisplay();
+        finish();
+      } else {
+        updateDisplay();
+      }
+    }
+
+    function finish() {
+      running = false;
+      clearInterval(ticker);
+      stopSound();
+      stopBreath();
+      document.getElementById('playBtn').textContent = '▶';
+      document.getElementById('timerLabel').textContent = 'Complete ✓';
+      document.querySelectorAll('.dur-btn').forEach(b => b.disabled = false);
+      playBell();
+      setTimeout(() => document.getElementById('reflectOverlay').classList.add('open'), 800);
+    }
+
+    function resetTimer() {
+      pause();
+      remaining = totalSecs;
+      pendingSession = null;
+      document.getElementById('timerLabel').textContent = 'Ready';
+      document.querySelectorAll('.dur-btn').forEach(b => b.disabled = false);
+      updateDisplay();
+      stopBreath();
+      resetBreathUI();
+    }
+
+    function skipSession() {
+      if (!running && !pendingSession) return;
+      pause();
+      if (pendingSession) {
+        document.getElementById('reflectOverlay').classList.add('open');
+      } else {
+        resetTimer();
+      }
+    }
+
+    // ── Display ───────────────────────────────────────────
+    function updateDisplay() {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      document.getElementById('timerTime').textContent =
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+      const progress   = (totalSecs - remaining) / totalSecs;
+      const offset     = CIRCUMFERENCE * (1 - progress);
+      const ring       = document.getElementById('ringFill');
+      ring.style.strokeDashoffset = offset;
+
+      // Color shift as session progresses
+      const hue = Math.round(200 + progress * 60);
+      ring.style.stroke = `hsl(${hue}, 80%, 65%)`;
+    }
+
+    // ── Breathing guide ───────────────────────────────────
+    const BREATH_PATTERN = [
+      { phase:'Inhale',  secs:4,  scale:1.6,  color:'rgba(56,189,248,0.45)' },
+      { phase:'Hold',    secs:4,  scale:1.6,  color:'rgba(134,239,172,0.4)' },
+      { phase:'Exhale',  secs:6,  scale:0.85, color:'rgba(125,211,252,0.25)'},
+      { phase:'Rest',    secs:2,  scale:0.85, color:'rgba(125,211,252,0.1)' },
+    ];
+
+    let breathIdx    = 0;
+    let breathTimer  = null;
+    let breathAnimate = null;
+
+    function startBreath() {
+      breathIdx = 0;
+      runBreathPhase();
+    }
+
+    function runBreathPhase() {
+      const phase = BREATH_PATTERN[breathIdx % BREATH_PATTERN.length];
+      const circle = document.getElementById('breathCircle');
+      const phaseEl = document.getElementById('breathPhase');
+      const labelEl = document.getElementById('breathLabel');
+
+      phaseEl.textContent = phase.phase;
+      labelEl.textContent = `${phase.secs}s`;
+      circle.style.transition = `transform ${phase.secs}s ease-in-out, background ${phase.secs}s ease`;
+      circle.style.transform  = `scale(${phase.scale})`;
+      circle.style.background = `radial-gradient(circle, ${phase.color}, rgba(56,189,248,0.02))`;
+
+      breathTimer = setTimeout(() => {
+        if (!running) return;
+        breathIdx++;
+        runBreathPhase();
+      }, phase.secs * 1000);
+    }
+
+    function stopBreath() { clearTimeout(breathTimer); }
+
+    function resetBreathUI() {
+      document.getElementById('breathPhase').textContent = 'Breathe with the circle';
+      document.getElementById('breathLabel').textContent = 'Press start to begin';
+      const c = document.getElementById('breathCircle');
+      c.style.transform  = 'scale(1)';
+      c.style.background = 'radial-gradient(circle, rgba(56,189,248,0.4), rgba(56,189,248,0.05))';
+    }
+
+    // ── Web Audio ambient sounds ──────────────────────────
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function stopSound() {
+      if (soundNode) { try { soundNode.stop(); } catch(e){} soundNode = null; }
+    }
+
+    function startSound() {
+      stopSound();
+      if (activeSound === 'none') return;
+      const ctx = getAudioCtx();
+      const gen = SOUND_GENERATORS[activeSound];
+      if (gen) soundNode = gen(ctx, volume);
+    }
+
+    function toggleSound(name, btn) {
+      document.querySelectorAll('.sound-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      activeSound = name;
+      stopSound();
+      if (running) startSound();
+    }
+
+    function setVolume(v) {
+      volume = parseFloat(v);
+      if (soundNode && soundNode._gainNode) soundNode._gainNode.gain.value = volume;
+    }
+
+    // ── Sound generators ──────────────────────────────────
+    const SOUND_GENERATORS = {
+
+      rain(ctx, vol) {
+        const buf  = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+        const src    = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const filter = ctx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.value = 1200; filter.Q.value = 0.4;
+        const gain   = ctx.createGain(); gain.gain.value = vol;
+        src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        src.start(); src._gainNode = gain; return src;
+      },
+
+      ocean(ctx, vol) {
+        const gain = ctx.createGain(); gain.gain.value = vol; gain.connect(ctx.destination);
+        // Multiple detuned oscillators for wave effect
+        function makeWave(freq, delay) {
+          const osc  = ctx.createOscillator(); osc.frequency.value = freq; osc.type = 'sine';
+          const wGain = ctx.createGain();
+          osc.connect(wGain); wGain.connect(gain); osc.start();
+          function ebb() {
+            wGain.gain.setValueAtTime(0, ctx.currentTime);
+            wGain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 2.5);
+            wGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 5);
+            setTimeout(ebb, 5200);
+          }
+          setTimeout(ebb, delay);
+        }
+        makeWave(80, 0); makeWave(110, 1800); makeWave(60, 3400);
+        const node = { stop(){ ctx.close(); }, _gainNode: gain };
+        return node;
+      },
+
+      birds(ctx, vol) {
+        const gain = ctx.createGain(); gain.gain.value = vol; gain.connect(ctx.destination);
+        const nodes = [];
+        function chirp() {
+          if (!nodes._active) return;
+          const f   = 800 + Math.random() * 1200;
+          const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = f;
+          const g   = ctx.createGain(); g.gain.value = 0;
+          osc.connect(g); g.connect(gain);
+          const t = ctx.currentTime;
+          g.gain.linearRampToValueAtTime(0.15, t + 0.05);
+          osc.frequency.linearRampToValueAtTime(f + 200 + Math.random()*200, t + 0.2);
+          g.gain.linearRampToValueAtTime(0, t + 0.4);
+          osc.start(t); osc.stop(t + 0.5);
+          if (nodes._active) setTimeout(chirp, 400 + Math.random() * 1800);
+        }
+        nodes._active = true;
+        chirp();
+        return { stop(){ nodes._active = false; }, _gainNode: gain };
+      },
+
+      forest(ctx, vol) {
+        // White noise + low hum (wind through trees)
+        const buf  = ctx.createBuffer(1, ctx.sampleRate * 3, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+        const src    = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 400;
+        const gain   = ctx.createGain(); gain.gain.value = vol;
+        src.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+        src.start(); src._gainNode = gain; return src;
+      },
+
+      fire(ctx, vol) {
+        const buf  = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.5;
+        const src  = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+        const f1   = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 250; f1.Q.value = 0.5;
+        const f2   = ctx.createBiquadFilter(); f2.type = 'lowpass';  f2.frequency.value = 600;
+        const gain = ctx.createGain(); gain.gain.value = vol;
+        src.connect(f1); f1.connect(f2); f2.connect(gain); gain.connect(ctx.destination);
+        src.start(); src._gainNode = gain; return src;
+      },
+
+      bowl(ctx, vol) {
+        const gain = ctx.createGain(); gain.gain.value = 0; gain.connect(ctx.destination);
+        function strike() {
+          const t   = ctx.currentTime;
+          const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 432;
+          const o2  = ctx.createOscillator(); o2.type  = 'sine'; o2.frequency.value  = 864;
+          const g2  = ctx.createGain(); g2.gain.value = 0.2;
+          osc.connect(gain); o2.connect(g2); g2.connect(gain);
+          gain.gain.setValueAtTime(vol, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 8);
+          osc.start(t); o2.start(t); osc.stop(t + 8); o2.stop(t + 8);
+        }
+        strike();
+        const iv = setInterval(strike, 10000);
+        return { stop(){ clearInterval(iv); }, _gainNode: gain };
+      },
+    };
+
+    // ── Bell sound ────────────────────────────────────────
+    function playBell() {
+      try {
+        const ctx  = getAudioCtx();
+        const osc  = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = 528;
+        const osc2 = ctx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = 660;
+        const gain = ctx.createGain();
+        osc.connect(gain); osc2.connect(gain); gain.connect(ctx.destination);
+        const t = ctx.currentTime;
+        gain.gain.setValueAtTime(0.5, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 3.5);
+        osc.start(t); osc2.start(t); osc.stop(t + 3.5); osc2.stop(t + 3.5);
+      } catch(e) {}
+    }
+
+    // ── Reflection ────────────────────────────────────────
+    function saveMood(mood) {
+      document.getElementById('reflectOverlay').classList.remove('open');
+      const sessions = getSessions();
+      const entry = {
+        id:        Date.now().toString(),
+        duration:  pendingSession ? pendingSession.duration : totalSecs / 60,
+        date:      new Date().toISOString(),
+        mood,
+      };
+      sessions.unshift(entry);
+      saveSessions(sessions);
+      pendingSession = null;
+      remaining = totalSecs;
+      updateDisplay();
+      document.getElementById('timerLabel').textContent = 'Ready';
+      document.querySelectorAll('.dur-btn').forEach(b => b.disabled = false);
+      renderStats();
+      showToast(mood ? `Session saved ${moodEmoji(mood)}` : 'Session saved');
+    }
+
+    // ── Stats ─────────────────────────────────────────────
+    function renderStats() {
+      const sessions = getSessions();
+      const total    = sessions.length;
+      const minutes  = sessions.reduce((s, x) => s + (x.duration || 0), 0);
+      const streak   = calcStreak(sessions);
+
+      ['statSessions','pStatSessions'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = total;
+      });
+      ['statStreak','pStatStreak'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = streak;
+      });
+      ['statMinutes','pStatMinutes'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = Math.round(minutes);
+      });
+    }
+
+    function calcStreak(sessions) {
+      const days = [...new Set(sessions.map(s => s.date.slice(0,10)))].sort((a,b)=>b.localeCompare(a));
+      if (!days.length) return 0;
+      let streak = 0;
+      const cur = new Date();
+      for (let i = 0; i < 400; i++) {
+        const d = new Date(cur); d.setDate(d.getDate() - i);
+        const k = d.toISOString().slice(0,10);
+        if (days.includes(k)) streak++;
+        else if (i > 0) break;
+      }
+      return streak;
+    }
+
+    // ── Chart ─────────────────────────────────────────────
+    function renderChart() {
+      const sessions = getSessions();
+      const days = [];
+      const today = new Date();
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().slice(0,10);
+        const count = sessions.filter(s => s.date.slice(0,10) === key).length;
+        days.push({ key, count, isToday: i===0, lbl: d.toLocaleDateString('en',{weekday:'short'}).slice(0,1) });
+      }
+      const max = Math.max(...days.map(d => d.count), 1);
+      const maxH = 58;
+
+      document.getElementById('chartBars').innerHTML = days.map(d => `
+        <div class="chart-col">
+          <div class="chart-val">${d.count || ''}</div>
+          <div class="chart-bar${d.count?' has-data':''}" style="height:${d.count?Math.max(Math.round((d.count/max)*maxH),6):3}px"></div>
+          <div class="chart-day${d.isToday?' today':''}">${d.isToday?'●':d.lbl}</div>
+        </div>`).join('');
+    }
+
+    // ── History ───────────────────────────────────────────
+    function renderHistory() {
+      const sessions = getSessions();
+      const el = document.getElementById('historyList');
+      if (!sessions.length) {
+        el.innerHTML = `<div class="empty">No sessions yet — start meditating!</div>`;
+        return;
+      }
+      el.innerHTML = sessions.slice(0, 30).map(s => `
+        <div class="history-item">
+          <div class="history-left">
+            <span class="history-mood">${s.mood ? moodEmoji(s.mood) : '🧘'}</span>
+            <div>
+              <div class="history-dur">${s.duration} min</div>
+              <div class="history-date">${new Date(s.date).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text3)">${s.mood || ''}</div>
+        </div>`).join('');
+    }
+
+    function moodEmoji(m) {
+      return { great:'😌', good:'🙂', ok:'😐' }[m] || '🧘';
+    }
+
+    // ── Tabs ─────────────────────────────────────────────
+    function switchTab(tab) {
+      document.getElementById('tabTimer').style.display    = tab==='timer'    ? '' : 'none';
+      document.getElementById('tabProgress').style.display = tab==='progress' ? '' : 'none';
+      document.querySelectorAll('.tab').forEach((el,i) => {
+        el.classList.toggle('active', ['timer','progress'][i] === tab);
+      });
+      if (tab === 'progress') { renderChart(); renderHistory(); }
+    }
+
+    // ── Keyboard ─────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+      if (e.key === 'r' || e.key === 'R') resetTimer();
+    });
+
+    // ── Init ─────────────────────────────────────────────
+    updateDisplay();
+    renderStats();
+
+    // Default "None" sound active
+    document.querySelector('.sound-pill').classList.add('active');
+  </script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Price Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0b0e1a;
+      --surface: #131726;
+      --surface2: #1c2033;
+      --border: #252a40;
+      --accent: #7c6ff7;
+      --accent2: #a78bfa;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.1);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.1);
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 4rem;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo { display: flex; align-items: center; gap: 0.5rem; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 1rem;
+    }
+    .logo h1 { font-size: 1rem; font-weight: 700; letter-spacing: -0.01em; }
+    .logo span { color: var(--accent2); }
+
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+
+    .refresh-info {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .btn {
+      padding: 0.4rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost.active { color: var(--accent2); border-color: var(--accent); }
+
+    /* ── Layout ── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 0; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      width: fit-content;
+      margin-bottom: 1.75rem;
+    }
+
+    .tab {
+      padding: 0.45rem 1.1rem;
+      border-radius: 7px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .tab.active { background: var(--accent); color: #fff; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.35rem 1rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .stat-pill strong { color: var(--text); font-size: 0.82rem; }
+
+    /* ── Cards grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 1rem;
+    }
+
+    /* ── Coin Card ── */
+    .coin-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.4rem;
+      cursor: pointer;
+      transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+      position: relative;
+    }
+
+    .coin-card:hover {
+      border-color: rgba(124,111,247,0.4);
+      box-shadow: 0 6px 28px rgba(124,111,247,0.1);
+      transform: translateY(-2px);
+    }
+
+    .coin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .coin-identity { display: flex; align-items: center; gap: 0.7rem; }
+    .coin-img { width: 40px; height: 40px; border-radius: 50%; }
+    .coin-img-placeholder {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--surface2);
+      display: grid; place-items: center;
+      font-size: 1.2rem;
+    }
+
+    .coin-name { font-weight: 700; font-size: 0.95rem; }
+    .coin-sym {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .coin-rank {
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--surface2);
+      border-radius: 999px;
+      padding: 0.15rem 0.5rem;
+      color: var(--muted);
+    }
+
+    .watchlist-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      line-height: 1;
+      transition: transform 0.15s;
+      padding: 0.2rem;
+    }
+    .watchlist-btn:hover { transform: scale(1.25); }
+
+    .coin-price { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+
+    .coin-change {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      margin-top: 0.3rem;
+    }
+
+    .up { color: var(--green); background: var(--green-bg); }
+    .down { color: var(--red); background: var(--red-bg); }
+
+    .coin-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat { display: flex; flex-direction: column; gap: 0.15rem; }
+    .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 0.85rem; font-weight: 600; }
+
+    /* ── Detail modal ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      padding: 1.75rem;
+      position: relative;
+      animation: slideUp 0.2s ease;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: var(--surface2);
+      border: none;
+      color: var(--muted);
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1rem;
+      display: grid; place-items: center;
+      transition: color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
+    .modal-coin-img { width: 52px; height: 52px; border-radius: 50%; }
+    .modal-coin-img-ph { width: 52px; height: 52px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; font-size: 1.6rem; }
+    .modal-title { font-size: 1.3rem; font-weight: 700; }
+    .modal-sym { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .modal-price { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.4rem; }
+
+    .modal-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1.25rem;
+    }
+
+    .modal-stat {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+    }
+    .modal-stat .stat-label { margin-bottom: 0.3rem; }
+    .modal-stat .stat-value { font-size: 0.95rem; }
+
+    .modal-footer { margin-top: 1.5rem; display: flex; gap: 0.75rem; }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty h3 { color: var(--text); margin-bottom: 0.5rem; }
+    .empty p { font-size: 0.9rem; line-height: 1.6; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.6rem 1.25rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      z-index: 300;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── Loading ── */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 4rem;
+      gap: 1rem;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error ── */
+    .error-box {
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-size: 0.85rem;
+      color: var(--red);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* back button */
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      margin-bottom: 1.5rem;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    @media (max-width: 500px) {
+      .modal-stats { grid-template-columns: 1fr; }
+      .stats-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">₿</div>
+      <h1>Crypto<span>Track</span></h1>
+    </div>
+    <div class="topbar-right">
+      <div class="refresh-info">
+        <div class="dot"></div>
+        <span id="lastUpdated">Fetching...</span>
+      </div>
+      <button class="btn btn-ghost" id="refreshBtn" onclick="fetchPrices()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="container">
+
+    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tabAll" onclick="switchTab('all')">All Coins</button>
+      <button class="tab" id="tabWatch" onclick="switchTab('watchlist')">⭐ Watchlist <span id="watchCount"></span></button>
+    </div>
+
+    <!-- Stats bar -->
+    <div class="stats-bar" id="statsBar"></div>
+
+    <!-- Error -->
+    <div class="error-box" id="errorBox" style="display:none">
+      ⚠️ <span id="errorMsg">Failed to fetch prices. Check your connection.</span>
+    </div>
+
+    <!-- Grid -->
+    <div id="gridContainer">
+      <div class="loading"><div class="spinner"></div><span>Loading prices...</span></div>
+    </div>
+
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="overlay" id="overlay" onclick="closeModal(event)">
+    <div class="modal" id="modal">
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ── Config ──────────────────────────────────────────
+    const COIN_IDS = ['bitcoin', 'ethereum', 'cardano', 'ripple'];
+    const REFRESH_MS = 5 * 60 * 1000; // 5 minutes
+    const API_URL = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${COIN_IDS.join(',')}&order=market_cap_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h`;
+
+    // ── State ────────────────────────────────────────────
+    let coins = [];
+    let watchlist = JSON.parse(localStorage.getItem('cryptoWatchlist') || '[]');
+    let currentTab = 'all';
+    let refreshTimer = null;
+    let countdown = REFRESH_MS / 1000;
+
+    // ── Fetch ────────────────────────────────────────────
+    async function fetchPrices() {
+      showError(false);
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        coins = await res.json();
+        renderGrid();
+        renderStats();
+        updateTimestamp();
+        resetCountdown();
+      } catch (e) {
+        showError(true, e.message);
+        // Show cached data if available
+        if (coins.length) renderGrid();
+      }
+    }
+
+    // ── Countdown ────────────────────────────────────────
+    function resetCountdown() {
+      countdown = REFRESH_MS / 1000;
+      clearInterval(refreshTimer);
+      refreshTimer = setInterval(() => {
+        countdown--;
+        const el = document.getElementById('lastUpdated');
+        if (el) el.textContent = `Refreshing in ${fmtCountdown(countdown)}`;
+        if (countdown <= 0) fetchPrices();
+      }, 1000);
+    }
+
+    function fmtCountdown(s) {
+      const m = Math.floor(s / 60), sec = s % 60;
+      return `${m}:${String(sec).padStart(2, '0')}`;
+    }
+
+    function updateTimestamp() {
+      const el = document.getElementById('lastUpdated');
+      if (el) el.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    }
+
+    // ── Stats bar ────────────────────────────────────────
+    function renderStats() {
+      const gainers = coins.filter(c => c.price_change_percentage_24h > 0).length;
+      const losers = coins.length - gainers;
+      const totalMcap = coins.reduce((s, c) => s + (c.market_cap || 0), 0);
+      document.getElementById('statsBar').innerHTML = `
+        <div class="stat-pill">Total market cap <strong>$${fmtLarge(totalMcap)}</strong></div>
+        <div class="stat-pill">📈 Gainers <strong style="color:var(--green)">${gainers}</strong></div>
+        <div class="stat-pill">📉 Losers <strong style="color:var(--red)">${losers}</strong></div>
+        <div class="stat-pill">⭐ Watchlist <strong>${watchlist.length}</strong></div>
+      `;
+    }
+
+    // ── Render grid ──────────────────────────────────────
+    function renderGrid() {
+      const container = document.getElementById('gridContainer');
+      const watchCount = document.getElementById('watchCount');
+
+      watchCount.textContent = watchlist.length ? `(${watchlist.length})` : '';
+
+      let list = currentTab === 'watchlist'
+        ? coins.filter(c => watchlist.includes(c.id))
+        : coins;
+
+      if (list.length === 0) {
+        container.innerHTML = currentTab === 'watchlist'
+          ? `<div class="empty">
+              <div class="empty-icon">⭐</div>
+              <h3>No coins in watchlist</h3>
+              <p>Go to All Coins and click the star icon<br>to add coins to your watchlist.</p>
+             </div>`
+          : `<div class="empty"><div class="empty-icon">😕</div><h3>No data</h3></div>`;
+        return;
+      }
+
+      container.innerHTML = `<div class="grid">${list.map(cardHTML).join('')}</div>`;
+    }
+
+    function cardHTML(coin) {
+      const pct = coin.price_change_percentage_24h || 0;
+      const change24h = coin.price_change_24h || 0;
+      const dir = pct >= 0 ? 'up' : 'down';
+      const arrow = pct >= 0 ? '▲' : '▼';
+      const inWatch = watchlist.includes(coin.id);
+
+      return `
+        <div class="coin-card" onclick="openModal('${coin.id}')">
+          <div class="coin-header">
+            <div class="coin-identity">
+              ${coin.image
+                ? `<img class="coin-img" src="${coin.image}" alt="${coin.name}" onerror="this.style.display='none'">`
+                : `<div class="coin-img-placeholder">${coin.symbol[0].toUpperCase()}</div>`}
+              <div>
+                <div class="coin-name">${coin.name}</div>
+                <div class="coin-sym">${coin.symbol}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem">
+              <span class="coin-rank">#${coin.market_cap_rank}</span>
+              <button class="watchlist-btn" onclick="toggleWatch(event,'${coin.id}')" title="${inWatch ? 'Remove from watchlist' : 'Add to watchlist'}">
+                ${inWatch ? '⭐' : '☆'}
+              </button>
+            </div>
+          </div>
+
+          <div class="coin-price">${fmtPrice(coin.current_price)}</div>
+          <div class="coin-change ${dir}">
+            ${arrow} ${Math.abs(pct).toFixed(2)}%
+            <span style="opacity:0.7">(${change24h >= 0 ? '+' : ''}${fmtPrice(change24h)})</span>
+          </div>
+
+          <div class="coin-stats">
+            <div class="stat">
+              <span class="stat-label">Market Cap</span>
+              <span class="stat-value">$${fmtLarge(coin.market_cap)}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Volume 24h</span>
+              <span class="stat-value">$${fmtLarge(coin.total_volume)}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">24h High</span>
+              <span class="stat-value">${fmtPrice(coin.high_24h)}</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">24h Low</span>
+              <span class="stat-value">${fmtPrice(coin.low_24h)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Modal ────────────────────────────────────────────
+    function openModal(id) {
+      const coin = coins.find(c => c.id === id);
+      if (!coin) return;
+      const pct = coin.price_change_percentage_24h || 0;
+      const change24h = coin.price_change_24h || 0;
+      const dir = pct >= 0 ? 'up' : 'down';
+      const arrow = pct >= 0 ? '▲' : '▼';
+      const inWatch = watchlist.includes(coin.id);
+
+      document.getElementById('modalContent').innerHTML = `
+        <div class="modal-header">
+          ${coin.image
+            ? `<img class="modal-coin-img" src="${coin.image}" alt="${coin.name}">`
+            : `<div class="modal-coin-img-ph">${coin.symbol[0].toUpperCase()}</div>`}
+          <div>
+            <div class="modal-title">${coin.name}</div>
+            <div class="modal-sym">${coin.symbol} · Rank #${coin.market_cap_rank}</div>
+          </div>
+        </div>
+
+        <div class="modal-price">${fmtPrice(coin.current_price)}</div>
+        <div class="coin-change ${dir}" style="display:inline-flex">
+          ${arrow} ${Math.abs(pct).toFixed(2)}%
+          <span style="opacity:0.7">&nbsp;(${change24h >= 0 ? '+' : ''}${fmtPrice(change24h)} today)</span>
+        </div>
+
+        <div class="modal-stats">
+          <div class="modal-stat">
+            <div class="stat-label">Market Cap</div>
+            <div class="stat-value">$${fmtLarge(coin.market_cap)}</div>
+          </div>
+          <div class="modal-stat">
+            <div class="stat-label">24h Volume</div>
+            <div class="stat-value">$${fmtLarge(coin.total_volume)}</div>
+          </div>
+          <div class="modal-stat">
+            <div class="stat-label">24h High</div>
+            <div class="stat-value">${fmtPrice(coin.high_24h)}</div>
+          </div>
+          <div class="modal-stat">
+            <div class="stat-label">24h Low</div>
+            <div class="stat-value">${fmtPrice(coin.low_24h)}</div>
+          </div>
+          <div class="modal-stat">
+            <div class="stat-label">All Time High</div>
+            <div class="stat-value">${fmtPrice(coin.ath)}</div>
+          </div>
+          <div class="modal-stat">
+            <div class="stat-label">Circulating Supply</div>
+            <div class="stat-value">${fmtLarge(coin.circulating_supply)} ${coin.symbol.toUpperCase()}</div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" onclick="toggleWatch(null,'${coin.id}');closeModalDirect()">
+            ${inWatch ? '⭐ Remove from Watchlist' : '☆ Add to Watchlist'}
+          </button>
+        </div>
+      `;
+      document.getElementById('overlay').classList.add('open');
+    }
+
+    function closeModal(e) {
+      if (e.target === document.getElementById('overlay')) closeModalDirect();
+    }
+    function closeModalDirect() {
+      document.getElementById('overlay').classList.remove('open');
+    }
+
+    // ── Watchlist ────────────────────────────────────────
+    function toggleWatch(e, id) {
+      if (e) e.stopPropagation();
+      const idx = watchlist.indexOf(id);
+      if (idx === -1) {
+        watchlist.push(id);
+        showToast(`Added to watchlist ⭐`);
+      } else {
+        watchlist.splice(idx, 1);
+        showToast('Removed from watchlist');
+      }
+      localStorage.setItem('cryptoWatchlist', JSON.stringify(watchlist));
+      renderGrid();
+      renderStats();
+    }
+
+    // ── Tabs ─────────────────────────────────────────────
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tabAll').classList.toggle('active', tab === 'all');
+      document.getElementById('tabWatch').classList.toggle('active', tab === 'watchlist');
+      renderGrid();
+    }
+
+    // ── Toast ────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    // ── Error ────────────────────────────────────────────
+    function showError(show, msg = '') {
+      const box = document.getElementById('errorBox');
+      box.style.display = show ? 'flex' : 'none';
+      if (msg) document.getElementById('errorMsg').textContent = `Failed to fetch prices: ${msg}`;
+    }
+
+    // ── Formatters ───────────────────────────────────────
+    function fmtPrice(n) {
+      if (n == null) return '—';
+      if (n < 0.01) return '$' + n.toFixed(6);
+      if (n < 1) return '$' + n.toFixed(4);
+      return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function fmtLarge(n) {
+      if (!n) return '—';
+      if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+      if (n >= 1e9)  return (n / 1e9).toFixed(2) + 'B';
+      if (n >= 1e6)  return (n / 1e6).toFixed(2) + 'M';
+      return n.toLocaleString();
+    }
+
+    // ── Keyboard ─────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') closeModalDirect();
+    });
+
+    // ── Init ─────────────────────────────────────────────
+    fetchPrices();
+  </script>
+
+</body>
+</html>

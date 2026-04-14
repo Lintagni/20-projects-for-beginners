@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Planner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect width="28" height="28" rx="7" fill="#6366f1"/>
+          <path d="M7 10h14M7 14h9M7 18h11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <span>ProjectPlanner</span>
+      </div>
+      <button class="btn btn-primary" id="openNewProjectModal">+ New Project</button>
+    </div>
+  </header>
+
+  <!-- Deadline Banner -->
+  <div id="deadlineBanner" class="deadline-banner hidden"></div>
+
+  <!-- Main Layout -->
+  <main>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h3>Projects</h3>
+      <ul id="projectList" class="project-nav"></ul>
+    </aside>
+
+    <!-- Content Area -->
+    <section class="content">
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <circle cx="36" cy="36" r="36" fill="#f1f5f9"/>
+          <path d="M22 28h28M22 36h20M22 44h24" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="52" cy="44" r="10" fill="#6366f1"/>
+          <path d="M49 44l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h2>No project selected</h2>
+        <p>Create a new project or select one from the sidebar to get started.</p>
+        <button class="btn btn-primary" id="emptyStateBtn">+ New Project</button>
+      </div>
+
+      <!-- Project Detail View -->
+      <div id="projectDetail" class="project-detail hidden">
+
+        <!-- Project Header -->
+        <div class="project-header">
+          <div class="project-meta">
+            <h1 id="projectName"></h1>
+            <div class="project-info">
+              <span class="deadline-tag" id="deadlineTag"></span>
+              <span class="time-remaining" id="timeRemaining"></span>
+            </div>
+          </div>
+          <button class="btn btn-danger" id="deleteProjectBtn">Delete Project</button>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-labels">
+            <span>Progress</span>
+            <span id="progressLabel">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="task-stats" id="taskStats"></div>
+        </div>
+
+        <!-- Add Task -->
+        <div class="add-task-form">
+          <input type="text" id="taskInput" placeholder="Add a new task…" />
+          <select id="prioritySelect">
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="low">Low</option>
+          </select>
+          <button class="btn btn-primary" id="addTaskBtn">Add Task</button>
+        </div>
+
+        <!-- Task Filters -->
+        <div class="filter-bar">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="pending">Pending</button>
+          <button class="filter-btn" data-filter="complete">Complete</button>
+          <div class="priority-legend">
+            <span class="dot high"></span>High
+            <span class="dot medium"></span>Medium
+            <span class="dot low"></span>Low
+          </div>
+        </div>
+
+        <!-- Task List -->
+        <ul id="taskList" class="task-list"></ul>
+        <div id="noTasks" class="no-tasks hidden">No tasks match this filter.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- New Project Modal -->
+  <div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>New Project</h2>
+        <button class="modal-close" id="closeModal">&#x2715;</button>
+      </div>
+      <div class="modal-body">
+        <label>Project Name
+          <input type="text" id="projectNameInput" placeholder="e.g. Website Redesign" />
+        </label>
+        <label>Deadline
+          <input type="date" id="projectDeadlineInput" />
+        </label>
+        <p id="modalError" class="modal-error hidden">Please fill in all fields.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="cancelModal">Cancel</button>
+        <button class="btn btn-primary" id="createProjectBtn">Create Project</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

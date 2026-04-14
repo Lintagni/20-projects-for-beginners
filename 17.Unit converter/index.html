@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unit Converter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f1a;
+      --surface: rgba(255,255,255,0.04);
+      --surface-solid: #151824;
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.08);
+      --border-focus: rgba(99,102,241,0.6);
+      --accent: #6366f1;
+      --accent-light: #818cf8;
+      --accent-glow: rgba(99,102,241,0.25);
+      --text: #e8e8f4;
+      --text-muted: #7878a0;
+      --text-dim: #4a4a6a;
+      --green: #34d399;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f0f2ff;
+      --surface: rgba(255,255,255,0.8);
+      --surface-solid: #ffffff;
+      --surface-hover: rgba(255,255,255,0.95);
+      --border: rgba(0,0,0,0.1);
+      --border-focus: rgba(99,102,241,0.5);
+      --text: #1a1a2e;
+      --text-muted: #5a5a7a;
+      --text-dim: #9090b0;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 1.25rem 5rem;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 15% 5%, rgba(99,102,241,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 85% 80%, rgba(168,85,247,0.09) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2.5rem 0 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .header-left h1 {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    [data-theme="light"] .header-left h1 {
+      background: linear-gradient(135deg, #1a1a2e 30%, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .header-left p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      margin-top: 0.3rem;
+    }
+
+    .theme-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: grid;
+      place-items: center;
+      backdrop-filter: blur(10px);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .theme-btn:hover { background: var(--surface-hover); transform: scale(1.08); }
+
+    /* ── Category Tabs ── */
+    .tabs-wrap {
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-wrap::-webkit-scrollbar { display: none; }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      min-width: max-content;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab:hover { color: var(--text); border-color: var(--accent-light); }
+
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .tab-icon { font-size: 1rem; }
+
+    /* ── Main Card ── */
+    .converter-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      backdrop-filter: blur(20px);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .converter-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-light), transparent);
+      opacity: 0.4;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .cat-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 1.4rem;
+      background: rgba(99,102,241,0.12);
+      flex-shrink: 0;
+    }
+
+    .cat-title { font-size: 1.1rem; font-weight: 600; }
+    .cat-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+    /* ── Conversion Pairs ── */
+    .pairs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 560px) {
+      .pairs-grid { grid-template-columns: 1fr; }
+    }
+
+    .pair-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      transition: border-color 0.2s;
+    }
+
+    [data-theme="light"] .pair-card { background: rgba(255,255,255,0.6); }
+
+    .pair-card:focus-within { border-color: var(--border-focus); }
+
+    .pair-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pair-direction {
+      font-size: 0.7rem;
+      color: var(--accent-light);
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .pair-inputs {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .field-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .field-unit {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .field-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.75rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    [data-theme="light"] .field-input { background: rgba(255,255,255,0.8); }
+
+    .field-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .field-input.result {
+      color: var(--accent-light);
+      cursor: default;
+    }
+
+    .swap-btn {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      transition: all 0.2s;
+      margin-top: 1.2rem;
+    }
+
+    .swap-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      transform: rotate(180deg);
+    }
+
+    .formula-row {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.4rem 0.6rem;
+      background: rgba(99,102,241,0.06);
+      border-radius: 6px;
+      border-left: 2px solid var(--accent);
+    }
+
+    .formula-row span { color: var(--accent-light); }
+
+    /* ── Custom Conversions ── */
+    .custom-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 1.75rem 2rem;
+      backdrop-filter: blur(20px);
+      margin-bottom: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .section-title span { color: var(--text-muted); font-size: 0.85rem; font-weight: 400; }
+
+    .custom-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto auto;
+      gap: 0.6rem;
+      align-items: end;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .custom-form { grid-template-columns: 1fr 1fr; }
+    }
+
+    .form-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .form-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .form-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.75rem;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    [data-theme="light"] .form-input { background: rgba(255,255,255,0.8); }
+
+    .form-input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    .btn {
+      padding: 0.6rem 1.1rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .btn-ghost:hover { border-color: var(--red); color: var(--red); }
+
+    .btn-icon { padding: 0.6rem 0.75rem; font-size: 1rem; }
+
+    /* Custom list */
+    .custom-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .custom-item {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 0.6rem;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    [data-theme="light"] .custom-item { background: rgba(255,255,255,0.6); }
+
+    .custom-item-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .custom-item-rate {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+    }
+
+    .del-btn:hover { color: var(--red); background: rgba(248,113,113,0.1); }
+
+    .custom-input-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 0.5rem;
+      align-items: center;
+      padding: 0.5rem 0;
+    }
+
+    .eq-sign { text-align: center; color: var(--text-muted); font-weight: 600; }
+
+    .custom-result {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    /* ── History ── */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 1.75rem 2rem;
+      backdrop-filter: blur(20px);
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      animation: slideIn 0.25s ease;
+    }
+
+    [data-theme="light"] .history-item { background: rgba(255,255,255,0.6); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .history-cat {
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .history-text {
+      flex: 1;
+      font-size: 0.85rem;
+    }
+
+    .history-text strong {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-light);
+    }
+
+    .history-time {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--accent);
+      color: #fff;
+      padding: 0.65rem 1.4rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 8px 28px rgba(99,102,241,0.4);
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) {
+      .converter-card, .custom-card, .history-card { padding: 1.25rem; }
+      .pairs-grid { grid-template-columns: 1fr; }
+      .custom-form { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-left">
+      <h1>Unit Converter</h1>
+      <p>Real-time conversions across temperature, distance, weight &amp; volume</p>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+  </header>
+
+  <!-- Category Tabs -->
+  <div class="tabs-wrap">
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+  <!-- Converter Card -->
+  <div class="converter-card" id="converterCard"></div>
+
+  <!-- Custom Conversions -->
+  <div class="custom-card">
+    <div class="section-title">
+      ⚗️ Custom Conversions <span>— define your own unit ratios</span>
+    </div>
+
+    <div class="custom-form" id="customForm">
+      <div class="form-field">
+        <label class="form-label">From Unit</label>
+        <input class="form-input" id="cfFromUnit" placeholder="e.g. inch" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">To Unit</label>
+        <input class="form-input" id="cfToUnit" placeholder="e.g. cm" />
+      </div>
+      <div class="form-field">
+        <label class="form-label">1 From = ? To</label>
+        <input class="form-input" id="cfRate" type="number" placeholder="2.54" step="any" />
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button class="btn btn-primary" onclick="addCustom()">Add</button>
+      </div>
+    </div>
+
+    <!-- Live custom converter -->
+    <div id="customConverterSection" style="display:none; margin-bottom:1rem;">
+      <div class="custom-input-row">
+        <div class="form-field">
+          <label class="form-label" id="cfFromLabel">Value</label>
+          <input class="form-input custom-result" id="cfFromVal" type="number" placeholder="0" oninput="computeCustom('from')" />
+        </div>
+        <div class="eq-sign" style="padding-top:1.2rem;">=</div>
+        <div class="form-field">
+          <label class="form-label" id="cfToLabel">Result</label>
+          <input class="form-input custom-result" id="cfToVal" type="number" placeholder="0" oninput="computeCustom('to')" />
+        </div>
+      </div>
+      <div class="formula-row" id="cfFormula"></div>
+    </div>
+
+    <div class="custom-list" id="customList"></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-card">
+    <div class="history-header">
+      <div class="section-title" style="margin:0">📋 History</div>
+      <button class="btn btn-ghost" onclick="clearHistory()">Clear all</button>
+    </div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ════════════════════════════════
+     DATA
+  ════════════════════════════════ */
+  const CATEGORIES = [
+    {
+      id: 'temperature',
+      label: 'Temperature',
+      icon: '🌡️',
+      pairs: [
+        {
+          from: { key: 'C', label: '°C', name: 'Celsius' },
+          to:   { key: 'F', label: '°F', name: 'Fahrenheit' },
+          forward: v => v * 9/5 + 32,
+          backward: v => (v - 32) * 5/9,
+          formulaFwd: v => `${v}°C × 9/5 + 32 = ${fmt(v*9/5+32)}°F`,
+          formulaBwd: v => `(${v}°F − 32) × 5/9 = ${fmt((v-32)*5/9)}°C`
+        },
+        {
+          from: { key: 'C2K', label: '°C', name: 'Celsius' },
+          to:   { key: 'K',  label: 'K',  name: 'Kelvin' },
+          forward: v => v + 273.15,
+          backward: v => v - 273.15,
+          formulaFwd: v => `${v}°C + 273.15 = ${fmt(v+273.15)} K`,
+          formulaBwd: v => `${v} K − 273.15 = ${fmt(v-273.15)}°C`
+        },
+        {
+          from: { key: 'F2',  label: '°F', name: 'Fahrenheit' },
+          to:   { key: 'K2',  label: 'K',  name: 'Kelvin' },
+          forward: v => (v - 32) * 5/9 + 273.15,
+          backward: v => (v - 273.15) * 9/5 + 32,
+          formulaFwd: v => `(${v}°F − 32) × 5/9 + 273.15 = ${fmt((v-32)*5/9+273.15)} K`,
+          formulaBwd: v => `(${v} K − 273.15) × 9/5 + 32 = ${fmt((v-273.15)*9/5+32)}°F`
+        }
+      ]
+    },
+    {
+      id: 'distance',
+      label: 'Distance',
+      icon: '📏',
+      pairs: [
+        {
+          from: { key: 'km',  label: 'km',   name: 'Kilometres' },
+          to:   { key: 'mi',  label: 'mi',   name: 'Miles' },
+          forward: v => v * 0.621371,
+          backward: v => v / 0.621371,
+          formulaFwd: v => `${v} km × 0.621371 = ${fmt(v*0.621371)} mi`,
+          formulaBwd: v => `${v} mi ÷ 0.621371 = ${fmt(v/0.621371)} km`
+        },
+        {
+          from: { key: 'm',   label: 'm',    name: 'Metres' },
+          to:   { key: 'ft',  label: 'ft',   name: 'Feet' },
+          forward: v => v * 3.28084,
+          backward: v => v / 3.28084,
+          formulaFwd: v => `${v} m × 3.28084 = ${fmt(v*3.28084)} ft`,
+          formulaBwd: v => `${v} ft ÷ 3.28084 = ${fmt(v/3.28084)} m`
+        },
+        {
+          from: { key: 'cm',  label: 'cm',   name: 'Centimetres' },
+          to:   { key: 'in',  label: 'in',   name: 'Inches' },
+          forward: v => v / 2.54,
+          backward: v => v * 2.54,
+          formulaFwd: v => `${v} cm ÷ 2.54 = ${fmt(v/2.54)} in`,
+          formulaBwd: v => `${v} in × 2.54 = ${fmt(v*2.54)} cm`
+        }
+      ]
+    },
+    {
+      id: 'weight',
+      label: 'Weight',
+      icon: '⚖️',
+      pairs: [
+        {
+          from: { key: 'kg',  label: 'kg',   name: 'Kilograms' },
+          to:   { key: 'lb',  label: 'lb',   name: 'Pounds' },
+          forward: v => v * 2.20462,
+          backward: v => v / 2.20462,
+          formulaFwd: v => `${v} kg × 2.20462 = ${fmt(v*2.20462)} lb`,
+          formulaBwd: v => `${v} lb ÷ 2.20462 = ${fmt(v/2.20462)} kg`
+        },
+        {
+          from: { key: 'g',   label: 'g',    name: 'Grams' },
+          to:   { key: 'oz',  label: 'oz',   name: 'Ounces' },
+          forward: v => v * 0.035274,
+          backward: v => v / 0.035274,
+          formulaFwd: v => `${v} g × 0.035274 = ${fmt(v*0.035274)} oz`,
+          formulaBwd: v => `${v} oz ÷ 0.035274 = ${fmt(v/0.035274)} g`
+        },
+        {
+          from: { key: 'ton', label: 't',    name: 'Metric Ton' },
+          to:   { key: 'lton',label: 'ton',  name: 'US Ton' },
+          forward: v => v * 1.10231,
+          backward: v => v / 1.10231,
+          formulaFwd: v => `${v} t × 1.10231 = ${fmt(v*1.10231)} ton`,
+          formulaBwd: v => `${v} ton ÷ 1.10231 = ${fmt(v/1.10231)} t`
+        }
+      ]
+    },
+    {
+      id: 'volume',
+      label: 'Volume',
+      icon: '🧪',
+      pairs: [
+        {
+          from: { key: 'L',   label: 'L',    name: 'Litres' },
+          to:   { key: 'gal', label: 'gal',  name: 'US Gallons' },
+          forward: v => v * 0.264172,
+          backward: v => v / 0.264172,
+          formulaFwd: v => `${v} L × 0.264172 = ${fmt(v*0.264172)} gal`,
+          formulaBwd: v => `${v} gal ÷ 0.264172 = ${fmt(v/0.264172)} L`
+        },
+        {
+          from: { key: 'mL',  label: 'mL',   name: 'Millilitres' },
+          to:   { key: 'floz',label: 'fl oz', name: 'Fluid Ounces' },
+          forward: v => v * 0.033814,
+          backward: v => v / 0.033814,
+          formulaFwd: v => `${v} mL × 0.033814 = ${fmt(v*0.033814)} fl oz`,
+          formulaBwd: v => `${v} fl oz ÷ 0.033814 = ${fmt(v/0.033814)} mL`
+        },
+        {
+          from: { key: 'cup', label: 'cup',  name: 'Cups' },
+          to:   { key: 'tbsp',label: 'tbsp', name: 'Tablespoons' },
+          forward: v => v * 16,
+          backward: v => v / 16,
+          formulaFwd: v => `${v} cup × 16 = ${fmt(v*16)} tbsp`,
+          formulaBwd: v => `${v} tbsp ÷ 16 = ${fmt(v/16)} cup`
+        }
+      ]
+    }
+  ];
+
+  /* ════════════════════════════════
+     STATE
+  ════════════════════════════════ */
+  let activeCat = 'temperature';
+  // Track direction per pair: 'forward' or 'backward'
+  const directions = {}; // pairKey -> 'fwd'|'bwd'
+  let customList = JSON.parse(localStorage.getItem('uc_custom') || '[]');
+  let history    = JSON.parse(localStorage.getItem('uc_history') || '[]');
+  let activeCustomIdx = null;
+
+  /* ════════════════════════════════
+     HELPERS
+  ════════════════════════════════ */
+  function fmt(n) {
+    if (n === '' || n === null || isNaN(n)) return '';
+    const abs = Math.abs(n);
+    if (abs === 0) return '0';
+    if (abs >= 1e6) return n.toExponential(4);
+    if (abs < 0.0001 && abs > 0) return n.toExponential(4);
+    const dec = abs >= 100 ? 2 : abs >= 1 ? 4 : 6;
+    return parseFloat(n.toFixed(dec)).toString();
+  }
+
+  function ts() {
+    const now = new Date();
+    return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function pairKey(catId, pIdx) { return `${catId}_${pIdx}`; }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* ════════════════════════════════
+     TABS
+  ════════════════════════════════ */
+  function renderTabs() {
+    const wrap = document.getElementById('tabs');
+    wrap.innerHTML = CATEGORIES.map(c => `
+      <button class="tab ${c.id === activeCat ? 'active' : ''}" onclick="switchCat('${c.id}')">
+        <span class="tab-icon">${c.icon}</span>${c.label}
+      </button>
+    `).join('');
+  }
+
+  function switchCat(id) {
+    activeCat = id;
+    renderTabs();
+    renderConverter();
+  }
+
+  /* ════════════════════════════════
+     CONVERTER
+  ════════════════════════════════ */
+  function renderConverter() {
+    const cat = CATEGORIES.find(c => c.id === activeCat);
+    const card = document.getElementById('converterCard');
+
+    card.innerHTML = `
+      <div class="category-header">
+        <div class="cat-icon">${cat.icon}</div>
+        <div>
+          <div class="cat-title">${cat.label} Converter</div>
+          <div class="cat-sub">${cat.pairs.length} conversion pairs — type in either field</div>
+        </div>
+      </div>
+      <div class="pairs-grid" id="pairsGrid"></div>
+    `;
+
+    const grid = document.getElementById('pairsGrid');
+    cat.pairs.forEach((pair, idx) => {
+      const key = pairKey(activeCat, idx);
+      if (!directions[key]) directions[key] = 'fwd';
+      const dir = directions[key];
+
+      const fromUnit = dir === 'fwd' ? pair.from : pair.to;
+      const toUnit   = dir === 'fwd' ? pair.to   : pair.from;
+
+      const pc = document.createElement('div');
+      pc.className = 'pair-card';
+      pc.id = `pair_${key}`;
+      pc.innerHTML = `
+        <div class="pair-label">
+          ${fromUnit.name} → ${toUnit.name}
+          <span class="pair-direction">${fromUnit.label} → ${toUnit.label}</span>
+        </div>
+        <div class="pair-inputs">
+          <div class="field-group">
+            <div class="field-unit">${fromUnit.label} (${fromUnit.name})</div>
+            <input class="field-input" id="inp_${key}" type="number" placeholder="0" step="any"
+              oninput="compute('${key}',${idx},'from')" />
+          </div>
+          <button class="swap-btn" onclick="swapDir('${key}',${idx})" title="Swap direction">⇄</button>
+          <div class="field-group">
+            <div class="field-unit">${toUnit.label} (${toUnit.name})</div>
+            <input class="field-input result" id="out_${key}" type="number" placeholder="—" step="any"
+              oninput="compute('${key}',${idx},'to')" />
+          </div>
+        </div>
+        <div class="formula-row" id="formula_${key}">Formula will appear here as you type</div>
+      `;
+      grid.appendChild(pc);
+    });
+  }
+
+  function compute(key, pIdx, side) {
+    const cat  = CATEGORIES.find(c => c.id === activeCat);
+    const pair = cat.pairs[pIdx];
+    const dir  = directions[key];
+
+    const inEl  = document.getElementById(`inp_${key}`);
+    const outEl = document.getElementById(`out_${key}`);
+    const fmlEl = document.getElementById(`formula_${key}`);
+
+    const fromPair = dir === 'fwd' ? pair : { forward: pair.backward, backward: pair.forward, formulaFwd: pair.formulaBwd, formulaBwd: pair.formulaFwd };
+
+    if (side === 'from') {
+      const v = parseFloat(inEl.value);
+      if (inEl.value === '' || isNaN(v)) { outEl.value = ''; fmlEl.innerHTML = 'Formula will appear here as you type'; return; }
+      const result = fromPair.forward(v);
+      outEl.value = fmt(result);
+      fmlEl.innerHTML = `<span>Formula:</span> ${fromPair.formulaFwd(v)}`;
+      addHistory(cat, pair, dir, v, result);
+    } else {
+      const v = parseFloat(outEl.value);
+      if (outEl.value === '' || isNaN(v)) { inEl.value = ''; fmlEl.innerHTML = 'Formula will appear here as you type'; return; }
+      const result = fromPair.backward(v);
+      inEl.value = fmt(result);
+      const fwdPair = dir === 'fwd' ? pair : { formulaBwd: pair.formulaFwd };
+      fmlEl.innerHTML = `<span>Formula:</span> ${fromPair.formulaBwd(v)}`;
+      addHistory(cat, pair, dir === 'fwd' ? { ...pair, from: pair.to, to: pair.from } : pair, 'fwd', v, result);
+    }
+  }
+
+  function swapDir(key, pIdx) {
+    const inEl  = document.getElementById(`inp_${key}`);
+    const outEl = document.getElementById(`out_${key}`);
+    // flip
+    directions[key] = directions[key] === 'fwd' ? 'bwd' : 'fwd';
+    // swap values
+    const tmp = inEl.value; inEl.value = outEl.value; outEl.value = tmp;
+    // re-render to update labels
+    renderConverter();
+    // restore values
+    const newIn  = document.getElementById(`inp_${key}`);
+    const newOut = document.getElementById(`out_${key}`);
+    newIn.value  = inEl.value;
+    newOut.value = outEl.value;
+    if (newIn.value) compute(key, pIdx, 'from');
+  }
+
+  /* ════════════════════════════════
+     HISTORY
+  ════════════════════════════════ */
+  function addHistory(cat, pair, dir, fromVal, toVal) {
+    const fromUnit = dir === 'fwd' ? pair.from : pair.to;
+    const toUnit   = dir === 'fwd' ? pair.to   : pair.from;
+    const entry = {
+      icon: cat.icon,
+      text: `${fmt(fromVal)} ${fromUnit.label} = ${fmt(toVal)} ${toUnit.label}`,
+      time: ts()
+    };
+    // avoid duplicate consecutive entry
+    if (history.length && history[0].text === entry.text) return;
+    history.unshift(entry);
+    if (history.length > 50) history.pop();
+    localStorage.setItem('uc_history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('historyList');
+    if (!history.length) {
+      list.innerHTML = '<div class="empty-state">No conversions yet — start typing above!</div>';
+      return;
+    }
+    list.innerHTML = history.map(h => `
+      <div class="history-item">
+        <div class="history-cat">${h.icon}</div>
+        <div class="history-text"><strong>${h.text}</strong></div>
+        <div class="history-time">${h.time}</div>
+      </div>
+    `).join('');
+  }
+
+  function clearHistory() {
+    history = [];
+    localStorage.removeItem('uc_history');
+    renderHistory();
+    showToast('History cleared');
+  }
+
+  /* ════════════════════════════════
+     CUSTOM CONVERSIONS
+  ════════════════════════════════ */
+  function addCustom() {
+    const fromUnit = document.getElementById('cfFromUnit').value.trim();
+    const toUnit   = document.getElementById('cfToUnit').value.trim();
+    const rate     = parseFloat(document.getElementById('cfRate').value);
+
+    if (!fromUnit || !toUnit || isNaN(rate) || rate <= 0) {
+      showToast('Please fill all fields correctly'); return;
+    }
+
+    customList.push({ fromUnit, toUnit, rate, id: Date.now() });
+    localStorage.setItem('uc_custom', JSON.stringify(customList));
+    document.getElementById('cfFromUnit').value = '';
+    document.getElementById('cfToUnit').value   = '';
+    document.getElementById('cfRate').value     = '';
+    renderCustomList();
+    showToast(`Added: 1 ${fromUnit} = ${rate} ${toUnit}`);
+  }
+
+  function deleteCustom(id) {
+    customList = customList.filter(c => c.id !== id);
+    localStorage.setItem('uc_custom', JSON.stringify(customList));
+    if (activeCustomIdx === id) {
+      activeCustomIdx = null;
+      document.getElementById('customConverterSection').style.display = 'none';
+    }
+    renderCustomList();
+    showToast('Conversion removed');
+  }
+
+  function selectCustom(id) {
+    activeCustomIdx = id;
+    const item = customList.find(c => c.id === id);
+    document.getElementById('cfFromLabel').textContent = item.fromUnit;
+    document.getElementById('cfToLabel').textContent   = item.toUnit;
+    document.getElementById('cfFromVal').value = '';
+    document.getElementById('cfToVal').value   = '';
+    document.getElementById('cfFormula').innerHTML = `<span>Formula:</span> 1 ${item.fromUnit} = ${item.rate} ${item.toUnit}`;
+    document.getElementById('customConverterSection').style.display = 'block';
+    document.getElementById('cfFromVal').focus();
+    renderCustomList();
+  }
+
+  function computeCustom(side) {
+    if (activeCustomIdx === null) return;
+    const item = customList.find(c => c.id === activeCustomIdx);
+    if (!item) return;
+    const fromEl = document.getElementById('cfFromVal');
+    const toEl   = document.getElementById('cfToVal');
+    const fmlEl  = document.getElementById('cfFormula');
+
+    if (side === 'from') {
+      const v = parseFloat(fromEl.value);
+      if (isNaN(v)) { toEl.value = ''; return; }
+      const result = v * item.rate;
+      toEl.value = fmt(result);
+      fmlEl.innerHTML = `<span>Formula:</span> ${v} ${item.fromUnit} × ${item.rate} = ${fmt(result)} ${item.toUnit}`;
+    } else {
+      const v = parseFloat(toEl.value);
+      if (isNaN(v)) { fromEl.value = ''; return; }
+      const result = v / item.rate;
+      fromEl.value = fmt(result);
+      fmlEl.innerHTML = `<span>Formula:</span> ${v} ${item.toUnit} ÷ ${item.rate} = ${fmt(result)} ${item.fromUnit}`;
+    }
+  }
+
+  function renderCustomList() {
+    const list = document.getElementById('customList');
+    if (!customList.length) {
+      list.innerHTML = '<div class="empty-state">No custom conversions yet — add one above</div>';
+      return;
+    }
+    list.innerHTML = customList.map(c => `
+      <div class="custom-item" style="${activeCustomIdx === c.id ? 'border-color:var(--border-focus);' : ''}">
+        <div class="custom-item-label">
+          <button style="background:none;border:none;color:var(--text);cursor:pointer;font-size:0.82rem;font-weight:600;padding:0;text-align:left;" onclick="selectCustom(${c.id})">
+            ${c.fromUnit} → ${c.toUnit} ${activeCustomIdx === c.id ? '●' : ''}
+          </button>
+        </div>
+        <div class="custom-item-rate">1 ${c.fromUnit} = ${c.rate} ${c.toUnit}</div>
+        <button class="del-btn" onclick="deleteCustom(${c.id})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  /* ════════════════════════════════
+     THEME
+  ════════════════════════════════ */
+  function initTheme() {
+    const saved = localStorage.getItem('uc_theme') || 'dark';
+    document.documentElement.dataset.theme = saved;
+    document.getElementById('themeBtn').textContent = saved === 'dark' ? '🌙' : '☀️';
+  }
+
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme;
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    document.getElementById('themeBtn').textContent = next === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('uc_theme', next);
+  });
+
+  /* ════════════════════════════════
+     INIT
+  ════════════════════════════════ */
+  initTheme();
+  renderTabs();
+  renderConverter();
+  renderCustomList();
+  renderHistory();
+</script>
+</body>
+</html>

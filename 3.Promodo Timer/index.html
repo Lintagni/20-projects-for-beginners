@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Timer</title>
+  <style>
+    /* ── Reset & Variables ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --work-h: 14deg;
+      --break-h: 155deg;
+    }
+
+    [data-theme="dark"] {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --surface2:    #252836;
+      --border:      #2e3247;
+      --text:        #e8eaf6;
+      --text-muted:  #7b82a3;
+      --accent-work: hsl(14deg 90% 55%);
+      --accent-brk:  hsl(155deg 70% 45%);
+      --shadow:      0 8px 32px rgba(0,0,0,.45);
+    }
+    [data-theme="light"] {
+      --bg:          #f0f2fa;
+      --surface:     #ffffff;
+      --surface2:    #e8ecf8;
+      --border:      #d0d5ee;
+      --text:        #1a1d2e;
+      --text-muted:  #6b729a;
+      --accent-work: hsl(14deg 80% 50%);
+      --accent-brk:  hsl(155deg 60% 38%);
+      --shadow:      0 8px 32px rgba(100,110,180,.12);
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .3s, color .3s;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .app {
+      width: min(520px, 95vw);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      color: var(--text);
+    }
+    .header h1 span { color: var(--accent-work); }
+
+    .theme-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 38px; height: 38px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, transform .15s;
+      color: var(--text);
+    }
+    .theme-btn:hover { background: var(--border); transform: rotate(20deg); }
+
+    /* ── Mode Tabs ───────────────────────────────────────────────────── */
+    .mode-tabs {
+      display: flex;
+      background: var(--surface2);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      background: transparent;
+      color: var(--text-muted);
+      transition: background .2s, color .2s;
+    }
+    .mode-tab.active[data-mode="work"] {
+      background: var(--accent-work);
+      color: #fff;
+    }
+    .mode-tab.active[data-mode="break"] {
+      background: var(--accent-brk);
+      color: #fff;
+    }
+
+    /* ── Main Card ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px 28px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+    }
+
+    /* ── SVG Ring ────────────────────────────────────────────────────── */
+    .ring-wrap {
+      position: relative;
+      width: 220px; height: 220px;
+    }
+    .ring-wrap svg {
+      width: 100%; height: 100%;
+      transform: rotate(-90deg);
+    }
+    .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+    .ring-fg {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .8s ease, stroke .5s;
+    }
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .timer-display {
+      font-size: 3.4rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .session-label {
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── Progress Bar ────────────────────────────────────────────────── */
+    .progress-bar-wrap {
+      width: 100%;
+    }
+    .progress-bar-track {
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .8s ease, background .5s;
+      background: var(--accent-work);
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .72rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    /* ── Controls ────────────────────────────────────────────────────── */
+    .controls {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+    .btn {
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      transition: transform .1s, opacity .15s, background .2s;
+    }
+    .btn:active { transform: scale(.94); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-main {
+      padding: 14px 48px;
+      font-size: 1.05rem;
+      background: var(--accent-work);
+      color: #fff;
+      border-radius: 50px;
+      min-width: 140px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+    }
+    [data-mode="break"] .btn-main { background: var(--accent-brk); }
+
+    .btn-icon {
+      width: 44px; height: 44px;
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-icon:hover { background: var(--border); }
+
+    /* ── Session Counter ─────────────────────────────────────────────── */
+    .stats {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+    .stat-box {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--accent-work);
+      line-height: 1;
+    }
+    [data-mode="break"] .stat-value { color: var(--accent-brk); }
+    .stat-label {
+      font-size: .7rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    /* ── Settings Panel ──────────────────────────────────────────────── */
+    .settings-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      align-self: center;
+    }
+    .settings-toggle:hover { color: var(--text); }
+    .settings-toggle svg { transition: transform .25s; }
+    .settings-toggle.open svg { transform: rotate(180deg); }
+
+    .settings-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: var(--shadow);
+    }
+    .settings-panel.open { display: flex; }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .setting-row label {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .setting-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .setting-input-wrap button {
+      width: 28px; height: 28px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .setting-input-wrap button:hover { background: var(--border); }
+    .setting-val {
+      font-size: .95rem;
+      font-weight: 700;
+      min-width: 50px;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .sound-toggle {
+      width: 44px; height: 24px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      position: relative;
+      cursor: pointer;
+      transition: background .25s;
+    }
+    .sound-toggle.on { background: var(--accent-work); border-color: transparent; }
+    .sound-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: left .25s;
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+    .sound-toggle.on::after { left: calc(100% - 21px); }
+
+    /* ── Notification Toast ──────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-size: .9rem;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,.3);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+      opacity: 0;
+      z-index: 99;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    /* ── Pulse animation when running ───────────────────────────────── */
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .75; }
+    }
+    .running .ring-fg { animation: pulse-ring 2s ease-in-out infinite; }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 380px) {
+      .timer-display { font-size: 2.8rem; }
+      .ring-wrap { width: 180px; height: 180px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Pomo<span>doro</span></h1>
+    <button class="theme-btn" id="themeBtn" title="Toggle theme">🌙</button>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" data-mode="work" id="tabWork">Work</button>
+    <button class="mode-tab" data-mode="break" id="tabBreak">Break</button>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card" id="card">
+
+    <!-- SVG Ring Timer -->
+    <div class="ring-wrap" id="ringWrap">
+      <svg viewBox="0 0 100 100">
+        <circle class="ring-bg" cx="50" cy="50" r="44" />
+        <circle class="ring-fg" id="ringFg" cx="50" cy="50" r="44"
+          stroke-dasharray="276.46" stroke-dashoffset="0" />
+      </svg>
+      <div class="ring-center">
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="session-label" id="sessionLabel">Work Session</div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width:100%"></div>
+      </div>
+      <div class="progress-label">
+        <span id="progressLeft">25:00 remaining</span>
+        <span id="progressPct">0%</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn btn-icon" id="resetBtn" title="Reset">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/>
+        </svg>
+      </button>
+      <button class="btn btn-main" id="startPauseBtn">Start</button>
+      <button class="btn btn-icon" id="skipBtn" title="Skip to next session">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="statsRow">
+      <div class="stat-box">
+        <div class="stat-value" id="statSessions">0</div>
+        <div class="stat-label">Sessions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statFocusTime">0m</div>
+        <div class="stat-label">Focus Time</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="statBreaks">0</div>
+        <div class="stat-label">Breaks</div>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- Settings Toggle -->
+  <button class="settings-toggle" id="settingsToggle">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+    Settings
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </button>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" id="settingsPanel">
+
+    <div class="setting-row">
+      <label>Work Duration</label>
+      <div class="setting-input-wrap">
+        <button id="workMinus">−</button>
+        <span class="setting-val" id="workVal">25 min</span>
+        <button id="workPlus">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <label>Break Duration</label>
+      <div class="setting-input-wrap">
+        <button id="breakMinus">−</button>
+        <span class="setting-val" id="breakVal">5 min</span>
+        <button id="breakPlus">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <label>Sound Alerts</label>
+      <div class="sound-toggle on" id="soundToggle"></div>
+    </div>
+
+    <div class="setting-row">
+      <label>Auto-switch Sessions</label>
+      <div class="sound-toggle on" id="autoToggle"></div>
+    </div>
+
+  </div>
+
+</div><!-- /app -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── State ──────────────────────────────────────────────────────────── */
+const state = {
+  mode: 'work',           // 'work' | 'break'
+  running: false,
+  workMins: 25,
+  breakMins: 5,
+  secondsLeft: 25 * 60,
+  totalSeconds: 25 * 60,
+  sessionsCompleted: 0,
+  breaksCompleted: 0,
+  focusSeconds: 0,
+  soundEnabled: true,
+  autoSwitch: true,
+  theme: 'dark',
+  intervalId: null,
+};
+
+/* ── DOM refs ────────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const timerDisplay  = $('timerDisplay');
+const sessionLabel  = $('sessionLabel');
+const ringFg        = $('ringFg');
+const progressFill  = $('progressFill');
+const progressLeft  = $('progressLeft');
+const progressPct   = $('progressPct');
+const startPauseBtn = $('startPauseBtn');
+const resetBtn      = $('resetBtn');
+const skipBtn       = $('skipBtn');
+const tabWork       = $('tabWork');
+const tabBreak      = $('tabBreak');
+const statSessions  = $('statSessions');
+const statFocusTime = $('statFocusTime');
+const statBreaks    = $('statBreaks');
+const themeBtn      = $('themeBtn');
+const settingsToggle = $('settingsToggle');
+const settingsPanel  = $('settingsPanel');
+const workVal       = $('workVal');
+const breakVal      = $('breakVal');
+const soundToggle   = $('soundToggle');
+const autoToggle    = $('autoToggle');
+const toast         = $('toast');
+const card          = $('card');
+const ringWrap      = $('ringWrap');
+const statsRow      = $('statsRow');
+
+// SVG circumference: 2π × 44 ≈ 276.46
+const CIRCUMFERENCE = 2 * Math.PI * 44;
+
+/* ── Audio (Web Audio API beep) ─────────────────────────────────────── */
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep(freq = 880, type = 'sine', duration = 0.18, vol = 0.4) {
+  if (!state.soundEnabled) return;
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch {}
+}
+function playDone() {
+  // Three ascending tones
+  [600, 800, 1000].forEach((f, i) => {
+    setTimeout(() => beep(f, 'sine', 0.25, 0.35), i * 160);
+  });
+}
+function playTick() {
+  beep(1200, 'square', 0.04, 0.08);
+}
+
+/* ── Format ──────────────────────────────────────────────────────────── */
+function fmt(secs) {
+  const m = Math.floor(secs / 60).toString().padStart(2, '0');
+  const s = (secs % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+function fmtMins(secs) {
+  const m = Math.floor(secs / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60}m`;
+  return `${m}m`;
+}
+
+/* ── Render ──────────────────────────────────────────────────────────── */
+function render() {
+  const pct = state.secondsLeft / state.totalSeconds;
+  const offset = CIRCUMFERENCE * (1 - pct);
+
+  timerDisplay.textContent = fmt(state.secondsLeft);
+  document.title = `${fmt(state.secondsLeft)} — ${state.mode === 'work' ? 'Work' : 'Break'}`;
+
+  // Ring
+  const accent = state.mode === 'work'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--accent-work').trim()
+    : getComputedStyle(document.documentElement).getPropertyValue('--accent-brk').trim();
+  ringFg.style.stroke = accent;
+  ringFg.style.strokeDashoffset = offset;
+
+  // Progress bar
+  progressFill.style.width = (pct * 100) + '%';
+  progressFill.style.background = accent;
+  progressLeft.textContent = fmt(state.secondsLeft) + ' remaining';
+  progressPct.textContent = Math.round((1 - pct) * 100) + '% done';
+
+  // Label
+  sessionLabel.textContent = state.mode === 'work' ? 'Work Session' : 'Break Time';
+
+  // Tabs
+  tabWork.classList.toggle('active', state.mode === 'work');
+  tabBreak.classList.toggle('active', state.mode === 'break');
+
+  // Button
+  startPauseBtn.textContent = state.running ? 'Pause' : (state.secondsLeft < state.totalSeconds ? 'Resume' : 'Start');
+
+  // Running pulse on ring
+  ringWrap.classList.toggle('running', state.running);
+  card.setAttribute('data-mode', state.mode);
+  statsRow.setAttribute('data-mode', state.mode);
+
+  // Stats
+  statSessions.textContent = state.sessionsCompleted;
+  statFocusTime.textContent = fmtMins(state.focusSeconds);
+  statBreaks.textContent = state.breaksCompleted;
+
+  // Settings values
+  workVal.textContent = state.workMins + ' min';
+  breakVal.textContent = state.breakMins + ' min';
+}
+
+/* ── Timer core ─────────────────────────────────────────────────────── */
+function tick() {
+  if (state.secondsLeft <= 0) {
+    finishSession();
+    return;
+  }
+  state.secondsLeft--;
+  if (state.running && state.mode === 'work') {
+    state.focusSeconds++;
+  }
+  // Tick sound in last 5 seconds
+  if (state.secondsLeft <= 5 && state.secondsLeft > 0) {
+    playTick();
+  }
+  render();
+}
+
+function finishSession() {
+  clearInterval(state.intervalId);
+  state.running = false;
+  playDone();
+  showBrowserNotification();
+
+  if (state.mode === 'work') {
+    state.sessionsCompleted++;
+    showToast('Work session complete! Time for a break. 🎉');
+    if (state.autoSwitch) switchMode('break', true);
+  } else {
+    state.breaksCompleted++;
+    showToast('Break over! Ready to focus? 💪');
+    if (state.autoSwitch) switchMode('work', true);
+  }
+  render();
+}
+
+function switchMode(mode, autoStart = false) {
+  state.mode = mode;
+  state.totalSeconds = (mode === 'work' ? state.workMins : state.breakMins) * 60;
+  state.secondsLeft = state.totalSeconds;
+  state.running = false;
+  clearInterval(state.intervalId);
+  if (autoStart) startTimer();
+  render();
+}
+
+function startTimer() {
+  state.running = true;
+  // Resume AudioContext if suspended (needed on some browsers after user gesture)
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  state.intervalId = setInterval(tick, 1000);
+  render();
+}
+
+function pauseTimer() {
+  state.running = false;
+  clearInterval(state.intervalId);
+  render();
+}
+
+function resetTimer() {
+  clearInterval(state.intervalId);
+  state.running = false;
+  state.totalSeconds = (state.mode === 'work' ? state.workMins : state.breakMins) * 60;
+  state.secondsLeft = state.totalSeconds;
+  render();
+}
+
+/* ── Notifications ───────────────────────────────────────────────────── */
+function requestNotifPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+function showBrowserNotification() {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const title = state.mode === 'work' ? '✅ Work session done!' : '⏰ Break over!';
+    const body  = state.mode === 'work' ? 'Time to take a break.' : 'Back to work!';
+    new Notification(title, { body, icon: '' });
+  }
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ── Event Listeners ─────────────────────────────────────────────────── */
+startPauseBtn.addEventListener('click', () => {
+  requestNotifPermission();
+  if (state.running) pauseTimer();
+  else startTimer();
+});
+
+resetBtn.addEventListener('click', () => {
+  resetTimer();
+  showToast('Timer reset.');
+});
+
+skipBtn.addEventListener('click', () => {
+  clearInterval(state.intervalId);
+  state.running = false;
+  const next = state.mode === 'work' ? 'break' : 'work';
+  switchMode(next);
+  showToast(`Skipped to ${next === 'work' ? 'Work' : 'Break'} session.`);
+});
+
+tabWork.addEventListener('click', () => {
+  if (state.mode !== 'work') { clearInterval(state.intervalId); switchMode('work'); }
+});
+tabBreak.addEventListener('click', () => {
+  if (state.mode !== 'break') { clearInterval(state.intervalId); switchMode('break'); }
+});
+
+themeBtn.addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', state.theme);
+  themeBtn.textContent = state.theme === 'dark' ? '🌙' : '☀️';
+  render();
+});
+
+settingsToggle.addEventListener('click', () => {
+  const open = settingsPanel.classList.toggle('open');
+  settingsToggle.classList.toggle('open', open);
+});
+
+// Work duration
+$('workPlus').addEventListener('click', () => {
+  if (state.workMins >= 60) return;
+  state.workMins++;
+  if (state.mode === 'work' && !state.running) {
+    state.totalSeconds = state.workMins * 60;
+    state.secondsLeft = state.totalSeconds;
+  }
+  render();
+});
+$('workMinus').addEventListener('click', () => {
+  if (state.workMins <= 1) return;
+  state.workMins--;
+  if (state.mode === 'work' && !state.running) {
+    state.totalSeconds = state.workMins * 60;
+    state.secondsLeft = state.totalSeconds;
+  }
+  render();
+});
+
+// Break duration
+$('breakPlus').addEventListener('click', () => {
+  if (state.breakMins >= 30) return;
+  state.breakMins++;
+  if (state.mode === 'break' && !state.running) {
+    state.totalSeconds = state.breakMins * 60;
+    state.secondsLeft = state.totalSeconds;
+  }
+  render();
+});
+$('breakMinus').addEventListener('click', () => {
+  if (state.breakMins <= 1) return;
+  state.breakMins--;
+  if (state.mode === 'break' && !state.running) {
+    state.totalSeconds = state.breakMins * 60;
+    state.secondsLeft = state.totalSeconds;
+  }
+  render();
+});
+
+soundToggle.addEventListener('click', () => {
+  state.soundEnabled = !state.soundEnabled;
+  soundToggle.classList.toggle('on', state.soundEnabled);
+});
+
+autoToggle.addEventListener('click', () => {
+  state.autoSwitch = !state.autoSwitch;
+  autoToggle.classList.toggle('on', state.autoSwitch);
+});
+
+/* ── Keyboard shortcuts ──────────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); startPauseBtn.click(); }
+  if (e.code === 'KeyR') resetBtn.click();
+  if (e.code === 'KeyS') skipBtn.click();
+});
+
+/* ── Init ────────────────────────────────────────────────────────────── */
+render();
+</script>
+</body>
+</html>
