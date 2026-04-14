@@ -60,12 +60,6 @@
 
     /* ── Layout ── */
     .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 0; }
-    .back-btn {
-      display: inline-flex; align-items: center; gap: 0.4rem;
-      font-size: 0.82rem; color: var(--text3);
-      text-decoration: none; margin-bottom: 1.75rem; transition: color 0.15s;
-    }
-    .back-btn:hover { color: var(--text2); }
 
     /* ── Tabs ── */
     .tabs {
@@ -332,7 +326,7 @@
     /* ── Print ── */
     @media print {
       .topbar, .tabs, .search-section, .results-meta, .modal-close,
-      .modal-actions, .scale-row, .card-heart, .back-btn, .toast { display: none !important; }
+      .modal-actions, .scale-row, .card-heart, .toast { display: none !important; }
       body { background: #fff; color: #111; }
       .modal { box-shadow: none; border: none; max-width: 100%; }
       .overlay { position: static; display: block; padding: 0; background: none; backdrop-filter: none; }
@@ -359,7 +353,7 @@
   </div>
 
   <div class="container">
-    <a href="../index.html" class="back-btn">← Back to Portfolio</a>
+    
 
     <!-- Tabs -->
     <div class="tabs">
