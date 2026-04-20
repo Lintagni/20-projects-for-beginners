@@ -239,9 +239,111 @@
 
   <main class="grid" id="grid"></main>
 
+  <!-- ── Guide / Downloads Section ── -->
+  <section style="
+    max-width: 1100px;
+    margin: 5rem auto 0;
+    background: #1a1d27;
+    border: 1px solid #2a2d3e;
+    border-radius: 20px;
+    padding: 3rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  ">
+    <!-- background glow -->
+    <div style="
+      position:absolute;top:-80px;right:-80px;
+      width:300px;height:300px;
+      background:radial-gradient(circle,rgba(108,99,255,0.12) 0%,transparent 70%);
+      pointer-events:none;
+    "></div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.2rem;">
+      <span style="
+        display:inline-block;
+        background:rgba(108,99,255,0.15);
+        border:1px solid rgba(108,99,255,0.35);
+        color:#8b85ff;
+        font-size:0.72rem;font-weight:700;
+        letter-spacing:0.1em;text-transform:uppercase;
+        padding:0.25rem 0.8rem;border-radius:999px;
+      ">Digital Product</span>
+    </div>
+
+    <h2 style="
+      font-size:clamp(1.4rem,3vw,2rem);
+      font-weight:700;letter-spacing:-0.02em;
+      line-height:1.2;margin-bottom:0.8rem;
+      background:linear-gradient(135deg,#fff 30%,#8b85ff);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+    ">Want the Prompts That Built These Apps?</h2>
+
+    <p style="color:#8888aa;font-size:1rem;max-width:580px;line-height:1.65;margin-bottom:1.8rem;">
+      The <strong style="color:#e8e8f0;">Claude Code Prompt Library for Beginners</strong> — 20 tested,
+      copy-paste-ready prompts. Each one builds a working app in 3–6 minutes.
+      No coding experience needed.
+    </p>
+
+    <ul style="
+      list-style:none;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:0.55rem;
+      margin-bottom:2rem;
+    ">
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        20 complete prompts — copy, paste, done
+      </li>
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        4 categories: Productivity, Finance, Wellness, Tools
+      </li>
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        Screenshots of every finished app
+      </li>
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        Build time 3–6 minutes per app
+      </li>
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        Difficulty levels &amp; customisation ideas
+      </li>
+      <li style="color:#c4c4d8;font-size:0.9rem;padding-left:1.4rem;position:relative;">
+        <span style="position:absolute;left:0;color:#4ade80;font-weight:700;">✓</span>
+        Lifetime access + future updates
+      </li>
+    </ul>
+
+    <div style="display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;">
+      <span style="font-size:2.2rem;font-weight:800;color:#fff;">$12 USD</span>
+      <a href="https://flight-agent.lemonsqueezy.com/checkout/buy/9748934d-17bb-4788-acaa-abc175e9b34d"
+         class="lemonsqueezy-button"
+         target="_blank" rel="noopener noreferrer"
+         style="
+           display:inline-flex;align-items:center;gap:8px;
+           background:#6c63ff;color:#fff;
+           padding:0.75rem 1.8rem;
+           border-radius:10px;
+           text-decoration:none;
+           font-weight:700;font-size:0.95rem;
+           transition:background 0.2s,transform 0.1s;
+         "
+         onmouseover="this.style.background='#5b54e8'"
+         onmouseout="this.style.background='#6c63ff'">
+        Get the Guide &nbsp;→
+      </a>
+    </div>
+  </section>
+
   <footer>
     Built with <span>♥</span> — 20 Projects using claude code + vscode
   </footer>
+
+  <script src="https://app.lemonsqueezy.com/js/lemon.js" defer></script>
 
   <script>
     const projects = [
